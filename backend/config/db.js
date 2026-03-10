@@ -10,7 +10,13 @@ const connectDB = async () => {
         await pool.query('SELECT NOW()'); // test connection
         console.log('PostgreSQL Connected...');
 
-        // Auto-migration
+        // Skip auto-migrations in production serverless
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Production mode: Skipping auto-migrations');
+            return;
+        }
+
+        // Auto-migration for development
         await pool.query(`
             CREATE TABLE IF NOT EXISTS complaints (
                 id SERIAL PRIMARY KEY,

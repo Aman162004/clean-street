@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
-connectDB();// Connect to Databas
 
 // Middleware
 app.use(cors());
@@ -15,6 +14,9 @@ app.use((req, res, next) => {
     if (req.method === 'POST') console.log('Body:', req.body);
     next();
 });
+
+// Initialize database (non-blocking for serverless)
+connectDB().catch(err => console.error('DB Init Error:', err.message));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

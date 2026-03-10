@@ -57,8 +57,8 @@ exports.register = async (req, res) => {
         res.status(201).json({ token, message: 'User registered successfully' });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        console.error('Registration error:', err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 };
 
@@ -89,8 +89,8 @@ exports.login = async (req, res) => {
         res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, location: user.location || '', phone: user.phone || '', createdAt: user.created_at } });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        console.error('Login error:', err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 };
 
