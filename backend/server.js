@@ -25,5 +25,11 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/complaints', require('./routes/complaintRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// For Vercel serverless - export the app
+module.exports = app;
+
+// For local development
+if (require.main === module) {
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+}
