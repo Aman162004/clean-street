@@ -1,11 +1,9 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/api"
-    }
-  ],
-  "redirects": [
+    },
     {
       "source": "/health",
       "destination": "/api"

@@ -7,7 +7,10 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
@@ -17,6 +20,15 @@ app.use((req, res, next) => {
 
 // Initialize database (non-blocking for serverless)
 connectDB().catch(err => console.error('DB Init Error:', err.message));
+
+// Root endpoint for testing
+app.get('/', (req, res) => {
+    res.json({ message: 'CleanStreet API is running', timestamp: new Date().toISOString() });
+});
+
+app.get('/api', (req, res) => {
+    res.json({ message: 'CleanStreet API is running', timestamp: new Date().toISOString() });
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
