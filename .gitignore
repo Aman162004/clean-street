@@ -17,6 +17,9 @@ dist/
 build/
 .vite/
 
+# Vercel
+.vercel
+
 # IDE
 .vscode/
 .idea/
