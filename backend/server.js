@@ -21,9 +21,9 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/complaints', require('./routes/complaintRoutes'));
-app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/auth', require('./routes/authRoutes'));
+app.use('/complaints', require('./routes/complaintRoutes'));
+app.use('/ai', require('./routes/aiRoutes'));
 
 // For Vercel serverless - export the app
 module.exports = app;
