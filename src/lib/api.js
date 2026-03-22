@@ -17,7 +17,7 @@ export const api = {
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('isAuthenticated');
-            window.location.href = '/login'; // Force redirect on session expiry
+            window.location.href = '/login/citizen'; // Force redirect on session expiry
             return;
         }
         if (!response.ok) {
@@ -36,7 +36,7 @@ export const api = {
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('isAuthenticated');
-            window.location.href = '/login';
+            window.location.href = '/login/citizen';
             return;
         }
         if (!response.ok) {
@@ -55,7 +55,7 @@ export const api = {
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('isAuthenticated');
-            window.location.href = '/login';
+            window.location.href = '/login/citizen';
             return;
         }
         if (!response.ok) {

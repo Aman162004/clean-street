@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { dashboardPathForRole, roleLabel } from '../lib/authRouting';
 
-function Login({ onLogin }) {
+function Login({ onLogin, expectedRole = 'citizen' }) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [errors, setErrors] = useState({
@@ -85,16 +86,20 @@ function Login({ onLogin }) {
                     localStorage.setItem('userData', JSON.stringify(response.user));
                 }
                 
+                const actualRole = response.user?.role;
+                if (actualRole && actualRole !== expectedRole) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        password: `This account is registered as ${roleLabel(actualRole)}. Please use the ${roleLabel(actualRole)} login page.`,
+                    }));
+                    return;
+                }
+
                 if (onLogin) {
                     onLogin();
                 }
-                
-                // Redirect based on role
-                if (response.user && response.user.role === 'admin') {
-                    navigate('/admin');
-                } else {
-                    navigate('/dashboard');
-                }
+
+                navigate(dashboardPathForRole(actualRole || expectedRole));
             } catch (err) {
                 console.error('Login error:', err);
                 setErrors({ ...errors, password: 'Invalid email or password' });
@@ -155,8 +160,8 @@ function Login({ onLogin }) {
                         <div className="text-center">
                             <small className="text-muted">
                                 Don't have an account?{' '}
-                                <Link to="/signup" className="text-decoration-none">
-                                    Register
+                                <Link to={`/signup/${expectedRole}`} className="text-decoration-none">
+                                    Register as {roleLabel(expectedRole)}
                                 </Link>
                             </small>
                         </div>

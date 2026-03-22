@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { dashboardPathForRole, roleLabel } from '../lib/authRouting';
 
-function Signup({ onLogin }) {
+function Signup({ onLogin, expectedRole = 'citizen' }) {
     const [formData, setFormData] = useState({
         fullName: '',
         username: '',
         email: '',
         phone: '',
         password: '',
-        role: 'citizen'
+        role: expectedRole
     })
     const navigate = useNavigate();
 
@@ -128,13 +129,8 @@ function Signup({ onLogin }) {
                 if (onLogin) {
                     onLogin();
                 }
-                
-                // Redirect based on role
-                if (role === 'admin') {
-                    navigate('/admin');
-                } else {
-                    navigate('/dashboard');
-                }
+
+                navigate(dashboardPathForRole(role));
             } catch (err) {
                 console.error('Registration error:', err);
                 setErrors({ ...errors, email: 'Registration failed. Email might already be in use.' });
@@ -192,19 +188,13 @@ function Signup({ onLogin }) {
                             {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
                         </div>
                         <div className="mb-3">
-                            <label htmlFor="signupRole" className="form-label">I am registering as</label>
-                            <select
-                                className="form-control"
-                                id="signupRole"
-                                name="role"
-                                value={formData.role}
-                                onChange={handleChange}
+                            <label className="form-label">Account type</label>
+                            <div
+                                className="form-control border-0 bg-body-secondary text-body fw-medium"
+                                style={{ cursor: 'default' }}
                             >
-                                <option value="citizen">Citizen (File complaints)</option>
-                                <option value="volunteer">Volunteer (Handle complaints)</option>
-                                <option value="admin">Admin (Manage system)</option>
-                            </select>
-                            <small className="text-muted">Citizens file complaints. Volunteers update work progress. Admins manage the entire system.</small>
+                                {roleLabel(expectedRole)} — use the navbar to pick a different registration type if needed.
+                            </div>
                         </div>
 
                         <div className="mb-3">
@@ -260,8 +250,8 @@ function Signup({ onLogin }) {
                         <div className="text-center">
                             <small className="text-muted">
                                 Already have an account?{' '}
-                                <Link to="/login" className="text-decoration-none">
-                                    Login
+                                <Link to={`/login/${expectedRole}`} className="text-decoration-none">
+                                    Login as {roleLabel(expectedRole)}
                                 </Link>
                             </small>
                         </div>

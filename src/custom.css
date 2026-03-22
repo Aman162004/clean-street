@@ -2,12 +2,25 @@
    BOOTSTRAP DARK / LIGHT THEME
    =============================== */
 
+:root {
+    --public-navbar-height: 56px;
+}
+
+/* Public site navbar — taller bar, nav links as buttons */
+.public-navbar .navbar-nav .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 :root,
 [data-bs-theme="light"] {
-    --bs-body-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #fef3c7 50%, #fce7f3 75%, #e0e7ff 100%);
-    --bs-body-color: #1e293b;
-    --bs-secondary-color: #64748b;
-    --card-bg: rgba(255, 255, 255, 0.95);
+    --bs-body-bg: #86EFAC;
+    --bs-body-color: #000000;
+    --bs-secondary-color: #000000;
+    --card-bg: #a7c5e6ff;
+    --bs-border-color: #E2E8F0;
     --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     --active-item-bg: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     --active-item-color: #ffffff;
@@ -508,7 +521,7 @@ body {
 
 .navbar-light .navbar-brand,
 .navbar-light .nav-link {
-    color: var(--bs-body-color) !important;
+    color: #000000 !important;
 }
 
 .navbar-light .nav-link:hover {
@@ -796,10 +809,10 @@ body {
    =============================== */
 
 [data-bs-theme="light"] .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
     border: none;
-    color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 [data-bs-theme="light"] .btn-primary:hover {
@@ -811,6 +824,7 @@ body {
 [data-bs-theme="light"] .btn-success {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: none;
+    color: #000000;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
@@ -822,18 +836,21 @@ body {
 [data-bs-theme="light"] .btn-warning {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     border: none;
+    color: #000000;
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 [data-bs-theme="light"] .btn-danger {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border: none;
+    color: #000000;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 [data-bs-theme="light"] .btn-info {
     background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
     border: none;
+    color: #000000;
     box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
 }
 
@@ -923,14 +940,14 @@ body {
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Text gradient for headings */
-[data-bs-theme="light"] h1,
+/* Text gradient for headings - REMOVED to allow solid dark green */
+/* [data-bs-theme="light"] h1,
 [data-bs-theme="light"] h2 {
     background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-}
+} */
 
 /* Table styling */
 [data-bs-theme="light"] .table {
@@ -2086,4 +2103,246 @@ body {
 
 [data-bs-theme="dark"] .profile-page small {
     color: #ffffff !important; /* White for edit hints */
+}
+
+/* Home page — hero fold (slogan + tiles; snug under nav, roomy before tiles) */
+.home-hero-fold {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: auto;
+    padding-top: 0;
+    padding-bottom: 1.75rem;
+}
+
+.home-slogan {
+    font-size: clamp(2rem, 6.5vw, 3.75rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.08;
+    margin: 0 auto;
+    width: 100%;
+    white-space: nowrap;
+    background: #14532D;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 3px 16px rgba(20, 83, 45, 0.45));
+}
+
+[data-bs-theme="dark"] .home-slogan {
+    background: linear-gradient(135deg, #6ee7b7 0%, #5eead4 40%, #67e8f9 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter: drop-shadow(0 2px 24px rgba(52, 211, 153, 0.4));
+}
+
+@media (max-height: 720px) {
+    .home-slogan {
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+    }
+}
+
+.home-role-tiles-grid--hero {
+    gap: 0.65rem !important;
+    margin-top: 0 !important;
+}
+
+@media (min-width: 768px) {
+    .home-role-tiles-grid--hero {
+        gap: 1.5rem !important;
+        margin-top: 0 !important;
+    }
+}
+
+/* Home — light theme: stronger, clearer text */
+[data-bs-theme="light"] .home-page h1,
+[data-bs-theme="light"] .home-page h2,
+[data-bs-theme="light"] .home-page h3,
+[data-bs-theme="light"] .home-page .home-tile-title {
+    color: #14532D !important;
+}
+
+[data-bs-theme="light"] footer span,
+[data-bs-theme="light"] footer p,
+[data-bs-theme="light"] footer a {
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .home-page .text-body,
+[data-bs-theme="light"] .home-page .lead,
+[data-bs-theme="light"] .home-page .text-muted,
+[data-bs-theme="light"] .home-page .home-tile-blurb,
+[data-bs-theme="light"] footer .text-muted {
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .home-page .btn-outline-secondary {
+    color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+[data-bs-theme="light"] .home-page .btn-outline-secondary:hover {
+    color: #000000 !important;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    border-color: #000000 !important;
+}
+
+[data-bs-theme="light"] .home-page .btn-outline-primary {
+    color: #14532D !important;
+    border-color: #14532D !important;
+}
+
+[data-bs-theme="light"] .home-page .home-tile-btn-outline {
+    color: #000000 !important;
+    border-color: #000000 !important;
+    background-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .home-page .home-tile-btn-outline:hover {
+    color: #000000 !important;
+    border-color: #000000 !important;
+    background-color: #f8fafc !important;
+}
+
+[data-bs-theme="light"] .home-page .home-hero-eyebrow {
+    color: #14532D !important;
+}
+
+[data-bs-theme="dark"] .home-page .home-hero-eyebrow {
+    color: #34d399 !important;
+}
+
+/* Home — role entry squares (equal size, hover lift) */
+.home-role-tiles-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .home-role-tiles-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+}
+
+.home-role-tile {
+    position: relative;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 360px;
+    aspect-ratio: 1 / 1;
+    border-radius: 1.25rem;
+    border: 2px solid var(--border-color, #e2e8f0);
+    background: var(--bg-card, rgba(255, 255, 255, 0.95));
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 3vw, 1.75rem);
+    text-align: center;
+    overflow: hidden;
+    transition:
+        transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1),
+        box-shadow 0.4s ease,
+        border-color 0.35s ease;
+}
+
+/* Light theme: clear framed boundary + depth */
+[data-bs-theme="light"] .home-role-tile {
+    background: #a7c5e6ff;
+    border: 1px solid #000000;
+    box-shadow:
+        0 0 0 4px #ffffff,
+        0 0 0 5px rgba(34, 197, 94, 0.22),
+        0 10px 32px rgba(15, 23, 42, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.home-role-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg, rgba(34, 197, 94, 0.12) 0%, rgba(20, 184, 166, 0.15) 50%, rgba(34, 197, 94, 0.08) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.home-role-tile:hover {
+    transform: translateY(-12px) scale(1.03);
+    border-color: rgba(34, 197, 94, 0.55);
+    box-shadow:
+        0 28px 56px rgba(34, 197, 94, 0.22),
+        0 0 0 1px rgba(34, 197, 94, 0.2),
+        0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+/* Light hover must follow generic hover so framed shadow wins */
+[data-bs-theme="light"] .home-role-tile:hover {
+    border-color: #22c55e;
+    box-shadow:
+        0 0 0 4px #ffffff,
+        0 0 0 6px rgba(34, 197, 94, 0.35),
+        0 24px 52px rgba(34, 197, 94, 0.18),
+        0 12px 28px rgba(15, 23, 42, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.home-role-tile:hover::before {
+    opacity: 1;
+}
+
+.home-role-tile-inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .home-role-tile {
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* Hero fold tiles — large squares */
+.home-hero-fold .home-role-tile {
+    max-width: min(100%, 320px);
+    margin-left: auto;
+    margin-right: auto;
+    padding: clamp(1rem, 2.2vw, 1.65rem);
+}
+
+@media (min-width: 768px) {
+    .home-hero-fold .home-role-tile {
+        max-width: min(100%, 300px);
+        padding: clamp(1.1rem, 2vw, 1.75rem);
+    }
+}
+
+@media (min-width: 1200px) {
+    .home-hero-fold .home-role-tile {
+        max-width: min(100%, 340px);
+    }
+}
+
+@media (max-height: 700px) {
+    .home-hero-fold {
+        padding-block: 0.35rem 1.25rem;
+    }
+
+    .home-role-tiles-grid--hero {
+        margin-top: clamp(2rem, 5vw, 3.25rem) !important;
+    }
+
+    .home-hero-fold .home-role-tile {
+        max-width: min(100%, 260px) !important;
+    }
 }

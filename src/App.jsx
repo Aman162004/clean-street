@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
+import PublicLayout from './layouts/PublicLayout';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import {
+    parseRoleParam,
+    LOGIN_SUBTITLE,
+    SIGNUP_SUBTITLE,
+} from './lib/authRouting';
 
+import Home from './pages/Home';
+import AboutUs from './pages/AboutUs';
+import Help from './pages/Help';
+import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Complaints from './pages/Complaints';
@@ -17,10 +27,42 @@ import VolunteerDashboard from './pages/VolunteerDashboard';
 // Protected Route Component
 const ProtectedRoute = ({ isAuthenticated, children }) => {
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login/citizen" replace />;
     }
     return children;
 };
+
+function RoleLoginRoute({ isAuthenticated, onLogin, getDashboardRoute }) {
+    const { role } = useParams();
+    const parsed = parseRoleParam(role);
+    if (!parsed) {
+        return <Navigate to="/login/citizen" replace />;
+    }
+    if (isAuthenticated) {
+        return <Navigate to={getDashboardRoute()} replace />;
+    }
+    return (
+        <AuthLayout subtitle={LOGIN_SUBTITLE[parsed]}>
+            <Login onLogin={onLogin} expectedRole={parsed} />
+        </AuthLayout>
+    );
+}
+
+function RoleSignupRoute({ isAuthenticated, onLogin, getDashboardRoute }) {
+    const { role } = useParams();
+    const parsed = parseRoleParam(role);
+    if (!parsed) {
+        return <Navigate to="/signup/citizen" replace />;
+    }
+    if (isAuthenticated) {
+        return <Navigate to={getDashboardRoute()} replace />;
+    }
+    return (
+        <AuthLayout subtitle={SIGNUP_SUBTITLE[parsed]}>
+            <Signup onLogin={onLogin} expectedRole={parsed} />
+        </AuthLayout>
+    );
+}
 
 function App() {
     // Initialize auth state from localStorage to persist login across refreshes
@@ -53,46 +95,61 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* Public Routes */}
+                {/* Public auth — role-specific URLs */}
+                <Route path="/login" element={<Navigate to="/login/citizen" replace />} />
+                <Route path="/signup" element={<Navigate to="/signup/citizen" replace />} />
                 <Route
-                    path="/login"
+                    path="/login/:role"
                     element={
-                        isAuthenticated ? (
-                            <Navigate 
-                                to={getDashboardRoute()} 
-                                replace 
-                            />
-                        ) : (
-                            <AuthLayout subtitle="Welcome Back, Citizen!">
-                                <Login onLogin={handleLogin} />
-                            </AuthLayout>
-                        )
+                        <RoleLoginRoute
+                            isAuthenticated={isAuthenticated}
+                            onLogin={handleLogin}
+                            getDashboardRoute={getDashboardRoute}
+                        />
                     }
                 />
                 <Route
-                    path="/signup"
+                    path="/signup/:role"
                     element={
-                        isAuthenticated ? (
-                            <Navigate 
-                                to={getDashboardRoute()} 
-                                replace 
-                            />
-                        ) : (
-                            <AuthLayout subtitle="Join Your Community Today">
-                                <Signup onLogin={handleLogin} />
-                            </AuthLayout>
-                        )
+                        <RoleSignupRoute
+                            isAuthenticated={isAuthenticated}
+                            onLogin={handleLogin}
+                            getDashboardRoute={getDashboardRoute}
+                        />
                     }
                 />
 
-                {/* Redirect Root to Login or Dashboard */}
+                {/* Public marketing pages */}
                 <Route
                     path="/"
                     element={
-                        <Navigate 
-                            to={isAuthenticated ? getDashboardRoute() : '/login'} 
-                            replace 
-                        />
+                        <PublicLayout>
+                            <Home />
+                        </PublicLayout>
+                    }
+                />
+                <Route
+                    path="/about"
+                    element={
+                        <PublicLayout>
+                            <AboutUs />
+                        </PublicLayout>
+                    }
+                />
+                <Route
+                    path="/help"
+                    element={
+                        <PublicLayout>
+                            <Help />
+                        </PublicLayout>
+                    }
+                />
+                <Route
+                    path="/contact"
+                    element={
+                        <PublicLayout>
+                            <Contact />
+                        </PublicLayout>
                     }
                 />
 

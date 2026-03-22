@@ -14,7 +14,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     className="w-100"
-                    style={{ maxWidth: '480px', zIndex: 1, marginTop: '70px' }}
+                    style={{ maxWidth: '480px', zIndex: 1, marginTop: 'var(--public-navbar-height, 88px)' }}
                 >
                     <div className="text-center mb-4">
                         <div className="d-flex justify-content-center mb-3">
