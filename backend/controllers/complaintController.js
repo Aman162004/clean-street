@@ -1,4 +1,17 @@
 const Complaint = require('../models/Complaint');
+const { uploadBufferToCloudinary } = require('../middlewares/upload');
+
+const ensureCitizen = (req, res) => {
+    const role = String(req.user.role || '').toLowerCase();
+    if (role !== 'citizen') {
+        res.status(403).json({
+            success: false,
+            message: 'Only citizens can upvote, downvote, or comment.'
+        });
+        return false;
+    }
+    return true;
+};
 
 const createComplaint = async (req, res) => {
     try {
@@ -8,6 +21,12 @@ const createComplaint = async (req, res) => {
 
         const { title, type, priority, address, landmark, description, latitude, longitude } = req.body;
         const user_id = req.user ? req.user.id : null;
+        let photo = '';
+
+        if (req.file?.buffer) {
+            const uploaded = await uploadBufferToCloudinary(req.file.buffer);
+            photo = uploaded.secure_url || '';
+        }
 
         if (!user_id) {
             console.error('Submission failed: No user_id in token');
@@ -15,7 +34,8 @@ const createComplaint = async (req, res) => {
         }
 
         // Only citizens can file complaints
-        if (req.user.role !== 'citizen') {
+        const role = String(req.user.role || '').toLowerCase();
+        if (role !== 'citizen') {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Only citizens can file complaints. Volunteers and admins cannot create complaints.' 
@@ -30,8 +50,9 @@ const createComplaint = async (req, res) => {
             address,
             landmark,
             description,
-            latitude,
-            longitude
+            latitude: latitude !== undefined && latitude !== null && latitude !== '' ? Number(latitude) : null,
+            longitude: longitude !== undefined && longitude !== null && longitude !== '' ? Number(longitude) : null,
+            photo
         });
 
         res.status(201).json({
@@ -47,7 +68,7 @@ const createComplaint = async (req, res) => {
 
 const getAllComplaints = async (req, res) => {
     try {
-        const complaints = await Complaint.findAllWithDetails();
+        const complaints = await Complaint.findAllWithDetails(req.user.id);
         res.json({ success: true, data: complaints });
     } catch (err) {
         console.error('Error in getAllComplaints:', err.message);
@@ -58,10 +79,66 @@ const getAllComplaints = async (req, res) => {
 const getUserComplaints = async (req, res) => {
     try {
         const userId = req.user.id;
-        const complaints = await Complaint.findByUserIdWithDetails(userId);
+        const complaints = await Complaint.findByUserIdWithDetails(userId, req.user.id);
         res.json({ success: true, data: complaints });
     } catch (err) {
         console.error('Error in getUserComplaints:', err.message);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+const upvoteComplaint = async (req, res) => {
+    try {
+        if (!ensureCitizen(req, res)) return;
+
+        const { complaintId } = req.params;
+        await Complaint.voteComplaint(complaintId, req.user.id, 'up');
+        res.json({ success: true, message: 'Upvoted successfully' });
+    } catch (err) {
+        console.error('Error in upvoteComplaint:', err.message);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+const downvoteComplaint = async (req, res) => {
+    try {
+        if (!ensureCitizen(req, res)) return;
+
+        const { complaintId } = req.params;
+        await Complaint.voteComplaint(complaintId, req.user.id, 'down');
+        res.json({ success: true, message: 'Downvoted successfully' });
+    } catch (err) {
+        console.error('Error in downvoteComplaint:', err.message);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+const addComplaintComment = async (req, res) => {
+    try {
+        if (!ensureCitizen(req, res)) return;
+
+        const { complaintId } = req.params;
+        const { comment } = req.body;
+
+        if (!comment || !comment.trim()) {
+            return res.status(400).json({ success: false, message: 'Comment is required' });
+        }
+
+        await Complaint.addComment(complaintId, req.user.id, comment.trim());
+        res.status(201).json({ success: true, message: 'Comment added successfully' });
+    } catch (err) {
+        console.error('Error in addComplaintComment:', err.message);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+const getComplaintComments = async (req, res) => {
+    try {
+        const { complaintId } = req.params;
+        const comments = await Complaint.getCommentsByComplaintId(complaintId);
+        res.json({ success: true, data: comments });
+    } catch (err) {
+        console.error('Error in getComplaintComments:', err.message);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -179,5 +256,9 @@ module.exports = {
     getVolunteerComplaints,
     getDashboardStats,
     assignVolunteer,
-    updateComplaintStatus
+    updateComplaintStatus,
+    upvoteComplaint,
+    downvoteComplaint,
+    addComplaintComment,
+    getComplaintComments
 };

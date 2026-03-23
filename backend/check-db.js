@@ -1,53 +1,42 @@
-const { pool } = require('./config/db');
+const { connectDB, mongoose } = require('./config/db');
+require('./models/User');
+require('./models/Complaint');
 require('dotenv').config();
 
 async function checkTables() {
     try {
-        console.log('📊 Checking database structure...\n');
+        await connectDB();
+        console.log('📊 Checking MongoDB structure...\n');
 
-        // Check users table
-        const usersInfo = await pool.query(`
-            SELECT column_name, data_type, is_nullable, column_default
-            FROM information_schema.columns
-            WHERE table_name = 'users'
-            ORDER BY ordinal_position
-        `);
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        console.log('📚 Collections:');
+        collections.forEach(c => console.log(`  - ${c.name}`));
 
-        console.log('👥 USERS TABLE:');
-        usersInfo.rows.forEach(col => {
-            console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? '(NOT NULL)' : ''}`);
-        });
+        const UserModel = mongoose.models.User;
+        const ComplaintModel = mongoose.models.Complaint;
 
-        // Check complaints table
-        const complaintsInfo = await pool.query(`
-            SELECT column_name, data_type, is_nullable, column_default
-            FROM information_schema.columns
-            WHERE table_name = 'complaints'
-            ORDER BY ordinal_position
-        `);
+        const userCount = await UserModel.countDocuments({});
+        const complaintCount = await ComplaintModel.countDocuments({});
 
-        console.log('\n📝 COMPLAINTS TABLE:');
-        complaintsInfo.rows.forEach(col => {
-            console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? '(NOT NULL)' : ''}`);
-        });
+        console.log(`\n👥 Users count: ${userCount}`);
+        console.log(`📝 Complaints count: ${complaintCount}`);
 
-        // Check sample data
-        const sampleComplaint = await pool.query('SELECT * FROM complaints LIMIT 1');
-        if (sampleComplaint.rows.length > 0) {
-            console.log('\n📋 Sample Complaint:');
-            console.log(JSON.stringify(sampleComplaint.rows[0], null, 2));
+        const sampleUser = await UserModel.findOne({}, 'name email role created_at').lean();
+        if (sampleUser) {
+            console.log('\n👤 Sample User:');
+            console.log(JSON.stringify(sampleUser, null, 2));
         }
 
-        const sampleUser = await pool.query('SELECT id, name, email, role FROM users LIMIT 1');
-        if (sampleUser.rows.length > 0) {
-            console.log('\n👤 Sample User:');
-            console.log(JSON.stringify(sampleUser.rows[0], null, 2));
+        const sampleComplaint = await ComplaintModel.findOne({}, 'title status priority created_at').lean();
+        if (sampleComplaint) {
+            console.log('\n📋 Sample Complaint:');
+            console.log(JSON.stringify(sampleComplaint, null, 2));
         }
 
     } catch (error) {
         console.error('❌ Error:', error.message);
     } finally {
-        await pool.end();
+        await mongoose.connection.close();
     }
 }
 

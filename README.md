@@ -2,12 +2,6 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
-
-- **Aman-Raj**: Backend development (Node.js/Express, Authentication API)
-- **Ansel**: Frontend authentication components (Login/Signup, Navbar, Theme system) 
-- **Krishika**: Frontend dashboard components (Analytics, Maps, Charts with Tailwind CSS)
-- **eshwar**:database(postgresql)
 
 ## React Compiler
 
@@ -32,7 +26,7 @@ Currently, two official plugins are available:
 
 **Backend:**
 - Node.js with Express
-- supabase for postgresql 
+- MongoDB
 - JWT for authentication
 - bcryptjs for password hashing
 

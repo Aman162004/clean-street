@@ -1,52 +1,31 @@
-const { pool } = require('../config/db');
+const { connectDB, mongoose } = require('../config/db');
+require('../models/User');
+require('../models/Complaint');
 
 const initDB = async () => {
     try {
-        console.log('Initializing database...');
+        console.log('Initializing MongoDB...');
+        await connectDB();
 
-        // Create users table first
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                location TEXT,
-                role VARCHAR(50) DEFAULT 'citizen',
-                profile_photo TEXT,
-                phone VARCHAR(20),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        const db = mongoose.connection.db;
+        const collections = await db.listCollections().toArray();
 
-        console.log('Users table created or already exists.');
+        if (!collections.find(c => c.name === 'users')) {
+            await db.createCollection('users');
+        }
+        if (!collections.find(c => c.name === 'complaints')) {
+            await db.createCollection('complaints');
+        }
 
-        // Create complaints table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS complaints (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                title VARCHAR(255) NOT NULL,
-                type VARCHAR(100) NOT NULL,
-                priority VARCHAR(50) NOT NULL,
-                address TEXT NOT NULL,
-                landmark TEXT,
-                description TEXT NOT NULL,
-                latitude DECIMAL(10, 8),
-                longitude DECIMAL(11, 8),
-                status VARCHAR(50) DEFAULT 'Pending',
-                photo TEXT,
-                assigned_to VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        await mongoose.models.User.collection.createIndex({ email: 1 }, { unique: true });
+        await mongoose.models.Complaint.collection.createIndex({ created_at: -1 });
 
-        console.log('Complaints table created or already exists.');
-        console.log('✅ Database initialized successfully!');
+        console.log('✅ MongoDB initialized successfully!');
+        await mongoose.connection.close();
         process.exit(0);
     } catch (err) {
-        console.error('Error initializing database:', err);
+        console.error('Error initializing MongoDB:', err);
+        await mongoose.connection.close();
         process.exit(1);
     }
 };

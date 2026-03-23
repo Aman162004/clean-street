@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
-const { pool } = require('./config/db');
+const { connectDB, mongoose } = require('./config/db');
+const User = require('./models/User');
 
 async function seedTestUsers() {
     try {
+        await connectDB();
         console.log('🌱 Seeding test users...\n');
 
         // Hash passwords
@@ -11,15 +13,18 @@ async function seedTestUsers() {
         const citizenPassword = await bcrypt.hash('citizen123', 10);
 
         // Delete existing test users first
-        await pool.query(`DELETE FROM users WHERE email LIKE '%@test.com'`);
+        await mongoose.models.User.deleteMany({ email: /@test\.com$/i });
         console.log('🗑️  Cleared existing test users\n');
 
         // Create Admin User
-        const adminResult = await pool.query(`
-            INSERT INTO users (name, email, password, phone, location, role)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *
-        `, ['Admin User', 'admin@test.com', adminPassword, '1234567890', 'Admin Office', 'admin']);
+        await User.create({
+            name: 'Admin User',
+            email: 'admin@test.com',
+            password: adminPassword,
+            phone: '1234567890',
+            location: 'Admin Office',
+            role: 'admin'
+        });
         console.log('  Admin user created:');
         console.log('   Email: admin@test.com');
         console.log('   Password: admin123');
@@ -33,10 +38,7 @@ async function seedTestUsers() {
         ];
 
         for (const [name, email, phone, location] of volunteers) {
-            await pool.query(`
-                INSERT INTO users (name, email, password, phone, location, role)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            `, [name, email, volunteerPassword, phone, location, 'volunteer']);
+            await User.create({ name, email, password: volunteerPassword, phone, location, role: 'volunteer' });
         }
         console.log('✅ Volunteer users created:');
         console.log('   Email: volunteer1@test.com | Password: volunteer123 | Name: John Volunteer');
@@ -50,26 +52,22 @@ async function seedTestUsers() {
         ];
 
         for (const [name, email, phone, location] of citizens) {
-            await pool.query(`
-                INSERT INTO users (name, email, password, phone, location, role)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            `, [name, email, citizenPassword, phone, location, 'citizen']);
+            await User.create({ name, email, password: citizenPassword, phone, location, role: 'citizen' });
         }
         console.log('✅ Regular citizen users created:');
         console.log('   Email: citizen1@test.com | Password: citizen123 | Name: Alice Citizen');
         console.log('   Email: citizen2@test.com | Password: citizen123 | Name: Bob Resident\n');
 
         // Show total users by role
-        const result = await pool.query(`
-            SELECT role, COUNT(*) as count 
-            FROM users 
-            GROUP BY role 
-            ORDER BY role
-        `);
+        const users = await User.findAll();
+        const grouped = users.reduce((acc, user) => {
+            acc[user.role] = (acc[user.role] || 0) + 1;
+            return acc;
+        }, {});
 
         console.log('📊 Total users in database:');
-        result.rows.forEach(row => {
-            console.log(`   ${row.role}: ${row.count}`);
+        Object.keys(grouped).sort().forEach(role => {
+            console.log(`   ${role}: ${grouped[role]}`);
         });
 
         console.log('\n✨ Test users seeded successfully!');
@@ -82,7 +80,7 @@ async function seedTestUsers() {
         console.error('❌ Error seeding users:', error.message);
         throw error;
     } finally {
-        await pool.end();
+        await mongoose.connection.close();
     }
 }
 

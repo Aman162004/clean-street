@@ -26,6 +26,7 @@ const ReportIssue = () => {
     const [geocoding, setGeocoding] = useState(false);
     const [geocodeError, setGeocodeError] = useState('');
     const [markerPosition, setMarkerPosition] = useState(null);
+    const [photoFile, setPhotoFile] = useState(null);
 
     useEffect(() => {
         const role = localStorage.getItem('userRole');
@@ -132,7 +133,20 @@ const ReportIssue = () => {
         setError('');
 
         try {
-            await api.post('/complaints', formData);
+            const payload = new FormData();
+            payload.append('title', formData.title);
+            payload.append('type', formData.type);
+            payload.append('priority', formData.priority);
+            payload.append('address', formData.address);
+            payload.append('landmark', formData.landmark || '');
+            payload.append('description', formData.description);
+            payload.append('latitude', String(formData.latitude));
+            payload.append('longitude', String(formData.longitude));
+            if (photoFile) {
+                payload.append('photo', photoFile);
+            }
+
+            await api.post('/complaints', payload);
             setIsSuccess(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
@@ -178,6 +192,7 @@ const ReportIssue = () => {
                                 setFormData({
                                     title: '', type: '', priority: '', address: '', landmark: '', description: '', latitude: null, longitude: null
                                 });
+                                setPhotoFile(null);
                                 setMarkerPosition(null);
                                 setGeocodeError('');
                             }}
@@ -335,6 +350,18 @@ const ReportIssue = () => {
                                                 onChange={handleChange}
                                                 required
                                             ></textarea>
+                                        </div>
+
+                                        {/* Photo Upload */}
+                                        <div className="col-12">
+                                            <label className="form-label fw-semibold" style={{ color: '#ef4444' }}>Upload Photo (Optional)</label>
+                                            <input
+                                                type="file"
+                                                className="form-control"
+                                                accept="image/*"
+                                                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                                            />
+                                            <small className="text-muted">Accepted formats: JPG, PNG, WEBP (max 5MB)</small>
                                         </div>
 
                                         {/* Map Location */}

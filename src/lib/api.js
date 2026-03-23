@@ -1,10 +1,10 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-const getHeaders = () => {
+const getHeaders = (isFormData = false) => {
     const token = localStorage.getItem('token');
     console.log('API Request Header Check - Token present:', !!token);
     return {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
 };
@@ -28,10 +28,11 @@ export const api = {
     },
 
     post: async (endpoint, data) => {
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
         const response = await fetch(`${BASE_URL}${endpoint}`, {
             method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
+            headers: getHeaders(isFormData),
+            body: isFormData ? data : JSON.stringify(data)
         });
         if (response.status === 401) {
             localStorage.removeItem('token');
@@ -47,10 +48,11 @@ export const api = {
     },
 
     put: async (endpoint, data) => {
+        const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
         const response = await fetch(`${BASE_URL}${endpoint}`, {
             method: 'PUT',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
+            headers: getHeaders(isFormData),
+            body: isFormData ? data : JSON.stringify(data)
         });
         if (response.status === 401) {
             localStorage.removeItem('token');

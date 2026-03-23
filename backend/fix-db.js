@@ -1,62 +1,30 @@
-const { pool } = require('./config/db');
+const { connectDB, mongoose } = require('./config/db');
+require('./models/User');
+require('./models/Complaint');
 require('dotenv').config();
 
-async function fixComplaintsTable() {
+async function fixMongoIndexes() {
     try {
-        console.log('🔧 Fixing complaints table structure...\n');
+        console.log('🔧 Verifying MongoDB indexes and schema assumptions...\n');
+        await connectDB();
 
-        // First, set any non-numeric assigned_to values to NULL
-        console.log('Cleaning assigned_to column...');
-        await pool.query(`
-            UPDATE complaints 
-            SET assigned_to = NULL 
-            WHERE assigned_to IS NOT NULL AND assigned_to !~ '^[0-9]+$'
-        `);
+        await mongoose.models.User.collection.createIndex({ email: 1 }, { unique: true });
+        await mongoose.models.User.collection.createIndex({ role: 1 });
+        await mongoose.models.Complaint.collection.createIndex({ user_id: 1 });
+        await mongoose.models.Complaint.collection.createIndex({ assigned_to: 1 });
+        await mongoose.models.Complaint.collection.createIndex({ status: 1 });
+        await mongoose.models.Complaint.collection.createIndex({ created_at: -1 });
 
-        // Now convert the column to INTEGER
-        console.log('Converting assigned_to to INTEGER type...');
-        await pool.query(`
-            ALTER TABLE complaints 
-            ALTER COLUMN assigned_to TYPE INTEGER USING assigned_to::integer
-        `);
-
-        // Add foreign key constraint if it doesn't exist
-        console.log('Adding foreign key constraint...');
-        await pool.query(`
-            DO $$ 
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.table_constraints 
-                    WHERE constraint_name = 'fk_complaints_assigned_to'
-                ) THEN
-                    ALTER TABLE complaints 
-                    ADD CONSTRAINT fk_complaints_assigned_to 
-                    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL;
-                END IF;
-            END $$;
-        `);
-
-        console.log('✅ Complaints table fixed successfully!');
-
-        // Verify the change
-        const result = await pool.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'complaints' AND column_name = 'assigned_to'
-        `);
-
-        console.log('\nColumn info after fix:');
-        console.log(`  assigned_to: ${result.rows[0].data_type}`);
-
+        console.log('✅ MongoDB indexes verified successfully!');
     } catch (error) {
         console.error('❌ Error:', error.message);
         throw error;
     } finally {
-        await pool.end();
+        await mongoose.connection.close();
     }
 }
 
-fixComplaintsTable()
+fixMongoIndexes()
     .then(() => {
         console.log('\n✨ Database fix complete!');
         process.exit(0);

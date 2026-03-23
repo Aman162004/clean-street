@@ -1,5 +1,5 @@
 const express = require('express');
-const { connectDB } = require('./config/db');
+const { connectDB, mongoose } = require('./config/db');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
@@ -39,8 +39,17 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/complaints', require('./routes/complaintRoutes'));
+const requireDatabase = (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: 'Database unavailable. Please try again shortly.'
+        });
+    }
+    next();
+};
+
+app.use('/api/auth', requireDatabase, require('./routes/authRoutes'));
+app.use('/api/complaints', requireDatabase, require('./routes/complaintRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 
 // For Vercel serverless - export the app

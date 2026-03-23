@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import StatsSection from '../components/StatsSection';
-import { MapPin, Clock, User, AlertTriangle, CheckCircle, RefreshCw, Filter, Users } from 'lucide-react';
+import { MapPin, Clock, User, AlertTriangle, CheckCircle, RefreshCw, Users, ThumbsUp, ThumbsDown, MessageCircle, Send } from 'lucide-react';
 import '../styles/Complaints.css';
 
 function Complaints() {
@@ -14,6 +14,11 @@ function Complaints() {
     const [loading, setLoading] = React.useState(true);
     const [user, setUser] = React.useState(null);
     const [viewMode, setViewMode] = React.useState('all'); // 'all' or 'my'
+    const [commentInputs, setCommentInputs] = React.useState({});
+    const [commentsByComplaint, setCommentsByComplaint] = React.useState({});
+    const [openCommentBoxes, setOpenCommentBoxes] = React.useState({});
+    const [actionLoading, setActionLoading] = React.useState({});
+    const isCitizen = String(user?.role || '').toLowerCase() === 'citizen';
 
     // Check URL parameters for view mode
     React.useEffect(() => {
@@ -90,6 +95,68 @@ function Complaints() {
         navigate(`/complaints${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
     };
 
+    const refreshComplaints = React.useCallback(async () => {
+        const complaintsEndpoint = viewMode === 'my' ? '/complaints/my-complaints' : '/complaints';
+        const complaintsRes = await api.get(complaintsEndpoint);
+        setComplaints(complaintsRes.data || []);
+    }, [viewMode]);
+
+    const handleVote = async (complaintId, voteType) => {
+        if (!isCitizen) return;
+
+        const loadingKey = `${complaintId}-${voteType}`;
+        try {
+            setActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+            const endpoint = voteType === 'up'
+                ? `/complaints/${complaintId}/upvote`
+                : `/complaints/${complaintId}/downvote`;
+            await api.post(endpoint, {});
+            await refreshComplaints();
+        } catch (err) {
+            console.error('Error while voting:', err.message);
+        } finally {
+            setActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+        }
+    };
+
+    const toggleComments = async (complaintId) => {
+        const isOpen = !!openCommentBoxes[complaintId];
+        setOpenCommentBoxes(prev => ({ ...prev, [complaintId]: !isOpen }));
+
+        if (!isOpen) {
+            try {
+                const response = await api.get(`/complaints/${complaintId}/comments`);
+                setCommentsByComplaint(prev => ({ ...prev, [complaintId]: response.data || [] }));
+            } catch (err) {
+                console.error('Error loading comments:', err.message);
+            }
+        }
+    };
+
+    const handleCommentSubmit = async (complaintId) => {
+        if (!isCitizen) return;
+
+        const content = (commentInputs[complaintId] || '').trim();
+        if (!content) return;
+
+        const loadingKey = `${complaintId}-comment`;
+        try {
+            setActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+            await api.post(`/complaints/${complaintId}/comments`, { comment: content });
+            setCommentInputs(prev => ({ ...prev, [complaintId]: '' }));
+
+            const [commentsResponse] = await Promise.all([
+                api.get(`/complaints/${complaintId}/comments`),
+                refreshComplaints()
+            ]);
+            setCommentsByComplaint(prev => ({ ...prev, [complaintId]: commentsResponse.data || [] }));
+        } catch (err) {
+            console.error('Error adding comment:', err.message);
+        } finally {
+            setActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+        }
+    };
+
     const getStatusBadge = (status) => {
         const s = (status || 'pending').toLowerCase();
         const statusMap = {
@@ -124,12 +191,14 @@ function Complaints() {
     };
 
     const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
+        return new Date(dateStr).toLocaleString('en-IN', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'Asia/Kolkata'
         });
     };
 
@@ -328,6 +397,82 @@ function Complaints() {
                                                 }}>
                                                     {complaint.description}
                                                 </p>
+                                            </div>
+                                        )}
+
+                                        {viewMode === 'all' && (
+                                            <div className="mb-3">
+                                                <div className="d-flex flex-wrap gap-2 mb-2">
+                                                    <button
+                                                        onClick={() => handleVote(complaint.id, 'up')}
+                                                        disabled={!isCitizen || !!actionLoading[`${complaint.id}-up`]}
+                                                        className={`btn btn-sm ${complaint.user_vote === 'up' ? 'btn-success' : 'btn-outline-success'} rounded-pill`}
+                                                    >
+                                                        <ThumbsUp size={14} className="me-1" />
+                                                        UpVote ({Number(complaint.upvotes || 0)})
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleVote(complaint.id, 'down')}
+                                                        disabled={!isCitizen || !!actionLoading[`${complaint.id}-down`]}
+                                                        className={`btn btn-sm ${complaint.user_vote === 'down' ? 'btn-danger' : 'btn-outline-danger'} rounded-pill`}
+                                                    >
+                                                        <ThumbsDown size={14} className="me-1" />
+                                                        DownVote ({Number(complaint.downvotes || 0)})
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => toggleComments(complaint.id)}
+                                                        className="btn btn-sm btn-outline-secondary rounded-pill"
+                                                    >
+                                                        <MessageCircle size={14} className="me-1" />
+                                                        Comments ({Number(complaint.comment_count || 0)})
+                                                    </button>
+                                                </div>
+
+                                                {openCommentBoxes[complaint.id] && (
+                                                    <div className="border rounded-3 p-3 bg-light">
+                                                        {isCitizen && (
+                                                            <div className="mb-3">
+                                                                <textarea
+                                                                    className="form-control form-control-sm"
+                                                                    rows={2}
+                                                                    placeholder="Write your comment..."
+                                                                    value={commentInputs[complaint.id] || ''}
+                                                                    onChange={(e) => setCommentInputs(prev => ({
+                                                                        ...prev,
+                                                                        [complaint.id]: e.target.value
+                                                                    }))}
+                                                                />
+                                                                <button
+                                                                    onClick={() => handleCommentSubmit(complaint.id)}
+                                                                    disabled={!!actionLoading[`${complaint.id}-comment`]}
+                                                                    className="btn btn-sm btn-primary rounded-pill mt-2"
+                                                                >
+                                                                    <Send size={13} className="me-1" />Add Comment
+                                                                </button>
+                                                            </div>
+                                                        )}
+
+                                                        {(commentsByComplaint[complaint.id] || []).length === 0 ? (
+                                                            <p className="small text-muted mb-0">No comments yet.</p>
+                                                        ) : (
+                                                            <div className="d-flex flex-column gap-2">
+                                                                {(commentsByComplaint[complaint.id] || []).map(comment => (
+                                                                    <div key={comment.id} className="bg-white border rounded-3 p-2">
+                                                                        <div className="small fw-semibold text-dark">
+                                                                            {comment.user_name || 'Citizen'}
+                                                                        </div>
+                                                                        <div className="small text-muted">{comment.comment}</div>
+                                                                        <div className="small text-muted mt-1">
+                                                                            {formatDate(comment.created_at)}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 

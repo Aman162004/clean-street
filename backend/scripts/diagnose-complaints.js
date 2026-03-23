@@ -1,16 +1,22 @@
-const { pool } = require('../config/db');
+const { connectDB, mongoose } = require('../config/db');
+require('../models/Complaint');
 
 async function diagnose() {
     try {
-        const result = await pool.query('SELECT status, COUNT(*) FROM complaints GROUP BY status');
+        await connectDB();
+        const grouped = await mongoose.models.Complaint.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
         console.log('--- STATUS DISTRIBUTION ---');
-        console.log(result.rows);
+        console.log(grouped.map(item => ({ status: item._id, count: item.count })));
 
-        const all = await pool.query('SELECT id, title, status FROM complaints');
+        const all = await mongoose.models.Complaint.find({}, 'title status').lean();
         console.log('--- ALL COMPLAINTS ---');
-        console.log(all.rows);
+        console.log(all.map(c => ({ id: String(c._id), title: c.title, status: c.status })));
     } catch (e) {
         console.error('Diagnosis error:', e);
+    } finally {
+        await mongoose.connection.close();
     }
 }
 

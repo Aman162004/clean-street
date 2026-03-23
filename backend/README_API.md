@@ -5,18 +5,13 @@ This backend supports a complaint management system with admin functionality for
 ## Setup Instructions
 
 ### 1. Database Setup
-First, set up your PostgreSQL database and run the schema:
-
-```bash
-# Run the database schema
-psql -U your_username -d your_database -f backend/database_schema.sql
-```
+Set up MongoDB locally or use MongoDB Atlas, then keep a valid connection URI ready.
 
 ### 2. Environment Variables
 Create a `.env` file in the backend directory:
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/cleanstreet_db
+MONGODB_URI=mongodb://localhost:27017/cleanstreet_db
 JWT_SECRET=your_jwt_secret_here
 PORT=3001
 ```
@@ -195,7 +190,7 @@ When an admin logs in, they can:
 - Role-based access control
 - Password hashing with bcrypt
 - Input validation
-- SQL injection prevention with parameterized queries
+- MongoDB document validation with Mongoose schemas
 
 ## Error Handling
 

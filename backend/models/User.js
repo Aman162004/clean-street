@@ -1,56 +1,80 @@
-const { pool } = require('../config/db');
+const { mongoose } = require('../config/db');
+
+const UserSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true },
+        email: { type: String, required: true, unique: true, index: true },
+        password: { type: String, required: true },
+        location: { type: String, default: '' },
+        role: { type: String, enum: ['citizen', 'volunteer', 'admin'], default: 'citizen' },
+        profile_photo: { type: String, default: '' },
+        phone: { type: String, default: '' }
+    },
+    {
+        timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+    }
+);
+
+const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
+
+const toUserObject = (doc) => {
+    if (!doc) return null;
+    const user = doc.toObject ? doc.toObject() : doc;
+    return {
+        ...user,
+        id: String(user._id)
+    };
+};
 
 const User = {
-
     async create({ name, email, password, location, role, profile_photo, phone }) {
-        const result = await pool.query(
-            `INSERT INTO users (name, email, password, location, role, profile_photo, phone)
-             VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-            [name, email, password, location || '', role || 'citizen', profile_photo || '', phone || '']
-        );
+        const user = await UserModel.create({
+            name,
+            email: String(email).toLowerCase(),
+            password,
+            location: location || '',
+            role: role || 'citizen',
+            profile_photo: profile_photo || '',
+            phone: phone || ''
+        });
 
-        return result.rows[0];
+        return toUserObject(user);
     },
 
     async findByEmail(email) {
-        const result = await pool.query(
-            `SELECT * FROM users WHERE email=$1`,
-            [email]
-        );
-
-        return result.rows[0];
+        const user = await UserModel.findOne({ email: String(email).toLowerCase() });
+        return toUserObject(user);
     },
 
     async findById(id) {
-        const result = await pool.query(
-            `SELECT * FROM users WHERE id=$1`,
-            [id]
-        );
-
-        return result.rows[0];
+        if (!mongoose.Types.ObjectId.isValid(id)) return null;
+        const user = await UserModel.findById(id);
+        return toUserObject(user);
     },
 
     async updateProfile(id, { name, email, phone, location }) {
-        const result = await pool.query(
-            `UPDATE users 
-             SET name = COALESCE($1, name),
-                 email = COALESCE($2, email), 
-                 phone = COALESCE($3, phone),
-                 location = COALESCE($4, location),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $5 
-             RETURNING *`,
-            [name, email, phone, location, id]
-        );
+        if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
-        return result.rows[0];
+        const updatePayload = {};
+        if (name !== undefined) updatePayload.name = name;
+        if (email !== undefined) updatePayload.email = String(email).toLowerCase();
+        if (phone !== undefined) updatePayload.phone = phone;
+        if (location !== undefined) updatePayload.location = location;
+
+        const updated = await UserModel.findByIdAndUpdate(id, updatePayload, { new: true });
+        return toUserObject(updated);
     },
 
     async findAll() {
-        const result = await pool.query(`SELECT * FROM users`);
-        return result.rows;
-    }
+        const users = await UserModel.find({}).sort({ created_at: -1 });
+        return users.map(toUserObject);
+    },
 
+    async updateRole(userId, role) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+        const updated = await UserModel.findByIdAndUpdate(userId, { role }, { new: true });
+        return toUserObject(updated);
+    }
 };
 
 module.exports = User;

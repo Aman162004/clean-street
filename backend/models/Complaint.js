@@ -1,135 +1,249 @@
-const { pool } = require('../config/db');
+const { mongoose } = require('../config/db');
+require('./User');
+
+const toObjectId = (value) => {
+    if (!value) return null;
+    return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
+};
+
+const VoteSchema = new mongoose.Schema(
+    {
+        user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        vote_type: { type: String, enum: ['up', 'down'], required: true }
+    },
+    { _id: false, timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
+);
+
+const CommentSchema = new mongoose.Schema(
+    {
+        user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        comment: { type: String, required: true }
+    },
+    { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
+);
+
+const ComplaintSchema = new mongoose.Schema(
+    {
+        user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        title: { type: String, required: true },
+        type: { type: String, default: 'Other' },
+        priority: { type: String, default: 'Medium' },
+        address: { type: String, required: true },
+        landmark: { type: String, default: '' },
+        description: { type: String, required: true },
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        status: { type: String, default: 'Pending' },
+        photo: { type: String, default: '' },
+        assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        votes: { type: [VoteSchema], default: [] },
+        comments: { type: [CommentSchema], default: [] }
+    },
+    {
+        timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+    }
+);
+
+const ComplaintModel = mongoose.models.Complaint || mongoose.model('Complaint', ComplaintSchema);
+const UserModel = mongoose.models.User;
+
+const priorityOrder = { Critical: 1, High: 2, Medium: 3, Low: 4 };
+
+const sortComplaints = (a, b) => {
+    const pa = priorityOrder[a.priority] || 5;
+    const pb = priorityOrder[b.priority] || 5;
+    if (pa !== pb) return pa - pb;
+    return new Date(b.created_at) - new Date(a.created_at);
+};
+
+const toComplaintPayload = (doc, currentUserId = null) => {
+    const complaint = doc.toObject ? doc.toObject() : doc;
+    const currentUser = currentUserId ? String(currentUserId) : null;
+
+    const upvotes = (complaint.votes || []).filter(v => v.vote_type === 'up').length;
+    const downvotes = (complaint.votes || []).filter(v => v.vote_type === 'down').length;
+    const userVote = currentUser
+        ? (complaint.votes || []).find(v => String(v.user_id) === currentUser)?.vote_type || null
+        : null;
+
+    return {
+        ...complaint,
+        id: String(complaint._id),
+        user_id: complaint.user_id?._id ? String(complaint.user_id._id) : String(complaint.user_id),
+        assigned_to: complaint.assigned_to?._id ? String(complaint.assigned_to._id) : (complaint.assigned_to ? String(complaint.assigned_to) : null),
+        user_name: complaint.user_id?.name,
+        user_email: complaint.user_id?.email,
+        user_phone: complaint.user_id?.phone,
+        volunteer_name: complaint.assigned_to?.name,
+        volunteer_email: complaint.assigned_to?.email,
+        upvotes,
+        downvotes,
+        comment_count: (complaint.comments || []).length,
+        user_vote: userVote
+    };
+};
 
 const Complaint = {
-    async create({ user_id, title, type, priority, address, landmark, description, latitude, longitude }) {
-        const result = await pool.query(
-            `INSERT INTO complaints (user_id, title, type, priority, address, landmark, description, latitude, longitude)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [user_id, title, type, priority, address, landmark, description, latitude, longitude]
-        );
-        return result.rows[0];
+    async create({ user_id, title, type, priority, address, landmark, description, latitude, longitude, photo }) {
+        const complaint = await ComplaintModel.create({
+            user_id: toObjectId(user_id),
+            title,
+            type,
+            priority,
+            address,
+            landmark,
+            description,
+            latitude,
+            longitude,
+            photo: photo || ''
+        });
+        return toComplaintPayload(complaint);
     },
 
     async findAll() {
-        const result = await pool.query(`
-            SELECT * FROM complaints 
-            ORDER BY 
-                CASE 
-                    WHEN priority = 'Critical' THEN 1
-                    WHEN priority = 'High' THEN 2
-                    WHEN priority = 'Medium' THEN 3
-                    WHEN priority = 'Low' THEN 4
-                    ELSE 5
-                END ASC,
-                created_at DESC
-        `);
-        return result.rows;
+        const complaints = await ComplaintModel.find({}).sort({ created_at: -1 });
+        return complaints.map(c => toComplaintPayload(c)).sort(sortComplaints);
     },
 
     async getStats() {
-        const result = await pool.query(`
-            SELECT 
-                COUNT(*) as total,
-                COUNT(*) FILTER (WHERE status = 'Pending' OR status IS NULL OR status = '') as pending,
-                COUNT(*) FILTER (WHERE status = 'In Progress') as in_progress,
-                COUNT(*) FILTER (WHERE status = 'Resolved') as resolved
-            FROM complaints
-        `);
-        return result.rows[0];
+        const [total, pending, inProgress, resolved] = await Promise.all([
+            ComplaintModel.countDocuments({}),
+            ComplaintModel.countDocuments({ $or: [{ status: 'Pending' }, { status: null }, { status: '' }] }),
+            ComplaintModel.countDocuments({ status: 'In Progress' }),
+            ComplaintModel.countDocuments({ status: 'Resolved' })
+        ]);
+
+        return {
+            total,
+            pending,
+            in_progress: inProgress,
+            resolved
+        };
     },
 
     async getRecent(limit = 5) {
-        const result = await pool.query(`
-            SELECT * FROM complaints 
-            ORDER BY created_at DESC 
-            LIMIT $1
-        `, [limit]);
-        return result.rows;
+        const recent = await ComplaintModel.find({}).sort({ created_at: -1 }).limit(limit);
+        return recent.map(c => toComplaintPayload(c));
     },
 
     async assignVolunteer(complaintId, volunteerId) {
-        const result = await pool.query(
-            `UPDATE complaints 
-             SET assigned_to = $1, status = 'In Progress', updated_at = CURRENT_TIMESTAMP 
-             WHERE id = $2 
-             RETURNING *`,
-            [volunteerId, complaintId]
+        if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
+        const updated = await ComplaintModel.findByIdAndUpdate(
+            complaintId,
+            { assigned_to: toObjectId(volunteerId), status: 'In Progress' },
+            { new: true }
         );
-        return result.rows[0];
+        return updated ? toComplaintPayload(updated) : null;
     },
 
     async updateStatus(complaintId, status) {
-        const result = await pool.query(
-            `UPDATE complaints 
-             SET status = $1, updated_at = CURRENT_TIMESTAMP 
-             WHERE id = $2 
-             RETURNING *`,
-            [status, complaintId]
-        );
-        return result.rows[0];
+        if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
+        const updated = await ComplaintModel.findByIdAndUpdate(complaintId, { status }, { new: true });
+        return updated ? toComplaintPayload(updated) : null;
     },
 
-    async findAllWithDetails() {
-        const result = await pool.query(`
-            SELECT c.*, 
-                   u.name as user_name, u.email as user_email,
-                   v.name as volunteer_name, v.email as volunteer_email
-            FROM complaints c
-            LEFT JOIN users u ON c.user_id = u.id
-            LEFT JOIN users v ON c.assigned_to = v.id
-            ORDER BY 
-                CASE 
-                    WHEN c.priority = 'Critical' THEN 1
-                    WHEN c.priority = 'High' THEN 2
-                    WHEN c.priority = 'Medium' THEN 3
-                    WHEN c.priority = 'Low' THEN 4
-                    ELSE 5
-                END ASC,
-                c.created_at DESC
-        `);
-        return result.rows;
+    async findAllWithDetails(currentUserId = null) {
+        const complaints = await ComplaintModel.find({})
+            .populate('user_id', 'name email phone role')
+            .populate('assigned_to', 'name email role')
+            .sort({ created_at: -1 });
+
+        return complaints.map(c => toComplaintPayload(c, currentUserId)).sort(sortComplaints);
     },
 
-    async findByUserIdWithDetails(userId) {
-        const result = await pool.query(`
-            SELECT c.*, 
-                   u.name as user_name, u.email as user_email,
-                   v.name as volunteer_name, v.email as volunteer_email
-            FROM complaints c
-            LEFT JOIN users u ON c.user_id = u.id
-            LEFT JOIN users v ON c.assigned_to = v.id
-            WHERE c.user_id = $1
-            ORDER BY c.created_at DESC
-        `, [userId]);
-        return result.rows;
+    async findByUserIdWithDetails(userId, currentUserId = null) {
+        const objId = toObjectId(userId);
+        if (!objId) return [];
+
+        const complaints = await ComplaintModel.find({ user_id: objId })
+            .populate('user_id', 'name email phone role')
+            .populate('assigned_to', 'name email role')
+            .sort({ created_at: -1 });
+
+        return complaints.map(c => toComplaintPayload(c, currentUserId));
     },
 
     async findByVolunteerId(volunteerId) {
-        const result = await pool.query(`
-            SELECT c.*, 
-                   u.name as user_name, u.email as user_email, u.phone as user_phone,
-                   v.name as volunteer_name
-            FROM complaints c
-            LEFT JOIN users u ON c.user_id = u.id
-            LEFT JOIN users v ON c.assigned_to = v.id
-            WHERE c.assigned_to = $1
-            ORDER BY 
-                CASE 
-                    WHEN c.status = 'In Progress' THEN 1
-                    WHEN c.status = 'Pending' THEN 2
-                    WHEN c.status = 'Resolved' THEN 3
-                    ELSE 4
-                END ASC,
-                CASE 
-                    WHEN c.priority = 'Critical' THEN 1
-                    WHEN c.priority = 'High' THEN 2
-                    WHEN c.priority = 'Medium' THEN 3
-                    WHEN c.priority = 'Low' THEN 4
-                    ELSE 5
-                END ASC,
-                c.created_at DESC
-        `, [volunteerId]);
-        return result.rows;
+        const objId = toObjectId(volunteerId);
+        if (!objId) return [];
+
+        const complaints = await ComplaintModel.find({ assigned_to: objId })
+            .populate('user_id', 'name email phone role')
+            .populate('assigned_to', 'name email role')
+            .sort({ created_at: -1 });
+
+        return complaints.map(c => toComplaintPayload(c)).sort((a, b) => {
+            const statusOrder = { 'In Progress': 1, Pending: 2, Resolved: 3 };
+            const sa = statusOrder[a.status] || 4;
+            const sb = statusOrder[b.status] || 4;
+            if (sa !== sb) return sa - sb;
+            return sortComplaints(a, b);
+        });
+    },
+
+    async voteComplaint(complaintId, userId, voteType) {
+        const complaintObjId = toObjectId(complaintId);
+        const userObjId = toObjectId(userId);
+        if (!complaintObjId || !userObjId) return null;
+
+        const complaint = await ComplaintModel.findById(complaintObjId);
+        if (!complaint) return null;
+
+        const existingVote = complaint.votes.find(v => String(v.user_id) === String(userObjId));
+        if (existingVote) {
+            existingVote.vote_type = voteType;
+        } else {
+            complaint.votes.push({ user_id: userObjId, vote_type: voteType });
+        }
+
+        await complaint.save();
+        return { complaint_id: String(complaint._id), user_id: String(userObjId), vote_type: voteType };
+    },
+
+    async addComment(complaintId, userId, comment) {
+        const complaintObjId = toObjectId(complaintId);
+        const userObjId = toObjectId(userId);
+        if (!complaintObjId || !userObjId) return null;
+
+        const complaintDoc = await ComplaintModel.findById(complaintObjId);
+        if (!complaintDoc) return null;
+
+        complaintDoc.comments.unshift({ user_id: userObjId, comment });
+        await complaintDoc.save();
+        const inserted = complaintDoc.comments[0];
+
+        return {
+            id: String(inserted._id),
+            complaint_id: String(complaintDoc._id),
+            user_id: String(userObjId),
+            comment: inserted.comment,
+            created_at: inserted.created_at
+        };
+    },
+
+    async getCommentsByComplaintId(complaintId) {
+        const complaintObjId = toObjectId(complaintId);
+        if (!complaintObjId) return [];
+
+        const complaint = await ComplaintModel.findById(complaintObjId).lean();
+        if (!complaint) return [];
+
+        const userIds = [...new Set((complaint.comments || []).map(c => String(c.user_id)))].filter(Boolean);
+        const users = await UserModel.find({ _id: { $in: userIds } }, 'name role').lean();
+        const userMap = new Map(users.map(u => [String(u._id), u]));
+
+        return (complaint.comments || [])
+            .slice()
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .map(comment => ({
+                id: String(comment._id),
+                complaint_id: String(complaint._id),
+                user_id: String(comment.user_id),
+                comment: comment.comment,
+                created_at: comment.created_at,
+                user_name: userMap.get(String(comment.user_id))?.name,
+                user_role: userMap.get(String(comment.user_id))?.role
+            }));
     }
 };
 

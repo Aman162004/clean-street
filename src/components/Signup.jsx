@@ -133,7 +133,8 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
                 navigate(dashboardPathForRole(role));
             } catch (err) {
                 console.error('Registration error:', err);
-                setErrors({ ...errors, email: 'Registration failed. Email might already be in use.' });
+                const message = err?.message || 'Registration failed. Please try again.';
+                setErrors((prev) => ({ ...prev, email: message }));
             }
         };
 
