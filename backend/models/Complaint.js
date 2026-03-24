@@ -26,6 +26,7 @@ const ComplaintSchema = new mongoose.Schema(
     {
         user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         title: { type: String, required: true },
+        department: { type: String, default: 'Unassigned' },
         type: { type: String, default: 'Other' },
         priority: { type: String, default: 'Medium' },
         address: { type: String, required: true },
@@ -74,6 +75,7 @@ const toComplaintPayload = (doc, currentUserId = null) => {
         user_name: complaint.user_id?.name,
         user_email: complaint.user_id?.email,
         user_phone: complaint.user_id?.phone,
+        department: complaint.department,
         volunteer_name: complaint.assigned_to?.name,
         volunteer_email: complaint.assigned_to?.email,
         upvotes,
@@ -84,10 +86,11 @@ const toComplaintPayload = (doc, currentUserId = null) => {
 };
 
 const Complaint = {
-    async create({ user_id, title, type, priority, address, landmark, description, latitude, longitude, photo }) {
-        const complaint = await ComplaintModel.create({
+    async create({ user_id, title, department, assigned_to, type, priority, address, landmark, description, latitude, longitude, photo, status }) {
+        const payload = {
             user_id: toObjectId(user_id),
             title,
+            department: department || 'Unassigned',
             type,
             priority,
             address,
@@ -96,7 +99,15 @@ const Complaint = {
             latitude,
             longitude,
             photo: photo || ''
-        });
+        };
+        if (assigned_to !== undefined && assigned_to !== null) {
+            payload.assigned_to = toObjectId(assigned_to);
+        }
+        if (status !== undefined && status !== null) {
+            payload.status = status;
+        }
+
+        const complaint = await ComplaintModel.create(payload);
         return toComplaintPayload(complaint);
     },
 

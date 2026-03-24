@@ -1,4 +1,6 @@
 const Complaint = require('../models/Complaint');
+const User = require('../models/User');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { uploadBufferToCloudinary } = require('../middlewares/upload');
 
 const ensureCitizen = (req, res) => {
@@ -42,9 +44,64 @@ const createComplaint = async (req, res) => {
             });
         }
 
+        let assignedDepartment = 'Other';
+        let assignedVolunteerId = null;
+        let complaintStatus = 'Pending';
+
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+                let responseText = null;
+
+                for (const modelName of modelsToTry) {
+                    try {
+                        const model = genAI.getGenerativeModel({ 
+                            model: modelName,
+                            generationConfig: { temperature: 0.1 }
+                        });
+                        
+                        const prompt = `Classify the following civic issue into exactly one of these departments:
+"Waste Management", "Roads & Transportation", "Water & Sanitation", "Electrical & Lighting", "Public Parks", "Other".
+Return ONLY the exact given string name of the department, with no extra characters or markdown.
+Title: ${title}
+Description: ${description}`;
+
+                        const result = await model.generateContent(prompt);
+                        responseText = result.response.text().trim();
+                        if (responseText) break;
+                    } catch (err) {
+                        console.error(`Gemini classification failed for ${modelName}:`, err.message);
+                        // Continue to next model
+                    }
+                }
+                
+                const validDepartments = ["Waste Management", "Roads & Transportation", "Water & Sanitation", "Electrical & Lighting", "Public Parks", "Other"];
+                if (responseText && validDepartments.includes(responseText)) {
+                    assignedDepartment = responseText;
+                }
+            }
+        } catch (aiErr) {
+            console.error('AI Classification error in createComplaint:', aiErr);
+            // Fallback to Other
+        }
+
+        if (assignedDepartment !== 'Other') {
+            const volunteers = await User.findVolunteersByDepartment(assignedDepartment);
+            if (volunteers && volunteers.length > 0) {
+                const randomVolunteer = volunteers[Math.floor(Math.random() * volunteers.length)];
+                assignedVolunteerId = randomVolunteer.id;
+                complaintStatus = 'In Progress';
+            }
+        }
+
         const complaint = await Complaint.create({
             user_id,
             title,
+            department: assignedDepartment,
+            assigned_to: assignedVolunteerId,
+            status: complaintStatus,
             type,
             priority,
             address,

@@ -26,7 +26,7 @@ const verifyToken = (req, res, next) => {
 // REGISTER
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, location, role, phone } = req.body;
+        const { name, email, password, location, role, department, phone } = req.body;
 
         const existing = await User.findByEmail(email);
 
@@ -44,6 +44,7 @@ exports.register = async (req, res) => {
             password: hashedPassword,
             location,
             role,
+            department,
             phone
         });
 
@@ -86,7 +87,7 @@ exports.login = async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, location: user.location || '', phone: user.phone || '', createdAt: user.created_at } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department || '', location: user.location || '', phone: user.phone || '', createdAt: user.created_at } });
 
     } catch (err) {
         console.error('Login error:', err);
@@ -109,6 +110,7 @@ exports.getProfile = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                department: user.department,
                 location: user.location,
                 phone: user.phone,
                 createdAt: user.created_at
@@ -123,7 +125,7 @@ exports.getProfile = async (req, res) => {
 // UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, email, phone, location } = req.body;
+        const { name, email, phone, location, department } = req.body;
         const userId = req.user.id;
 
         // Check if email is being changed and if it already exists
@@ -138,7 +140,8 @@ exports.updateProfile = async (req, res) => {
             name,
             email,
             phone: phone || '',
-            location: location || ''
+            location: location || '',
+            department: department || ''
         });
 
         res.json({
@@ -148,6 +151,7 @@ exports.updateProfile = async (req, res) => {
                 name: updatedUser.name,
                 email: updatedUser.email,
                 role: updatedUser.role,
+                department: updatedUser.department,
                 location: updatedUser.location,
                 phone: updatedUser.phone,
                 createdAt: updatedUser.created_at
