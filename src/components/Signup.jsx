@@ -10,8 +10,7 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         email: '',
         phone: '',
         password: '',
-        role: expectedRole,
-        department: 'Roads & Transportation'
+        role: expectedRole
     })
     const navigate = useNavigate();
 
@@ -111,14 +110,13 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         const registerUser = async () => {
             try {
                 // Map fullName to name for backend
-                const { fullName, email, password, role, phone, department } = formData;
+                const { fullName, email, password, role, phone } = formData;
                 const response = await api.post('/auth/register', {
                     name: fullName,
                     email,
                     password,
                     role,
-                    phone,
-                    department: role === 'volunteer' ? department : ''
+                    phone
                 });
 
                 // Store token and auth state
@@ -199,26 +197,6 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
                                 {roleLabel(expectedRole)} — use the navbar to pick a different registration type if needed.
                             </div>
                         </div>
-
-                        {expectedRole === 'volunteer' && (
-                            <div className="mb-3">
-                                <label htmlFor="signupDepartment" className="form-label">Department</label>
-                                <select 
-                                    className="form-select" 
-                                    id="signupDepartment"
-                                    name="department"
-                                    value={formData.department}
-                                    onChange={handleChange}
-                                >
-                                    <option value="Waste Management">Waste Management</option>
-                                    <option value="Roads & Transportation">Roads & Transportation</option>
-                                    <option value="Water & Sanitation">Water & Sanitation</option>
-                                    <option value="Electrical & Lighting">Electrical & Lighting</option>
-                                    <option value="Public Parks">Public Parks</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        )}
 
                         <div className="mb-3">
                             <label htmlFor="signupPhone" className="form-label">Phone Number</label>

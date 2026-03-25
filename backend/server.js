@@ -18,9 +18,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Initialize database (non-blocking for serverless)
-connectDB().catch(err => console.error('DB Init Error:', err.message));
-
 // Root endpoint for testing
 app.get('/', (req, res) => {
     res.json({ message: 'CleanStreet API is running', timestamp: new Date().toISOString() });
@@ -39,18 +36,58 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-const requireDatabase = (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
+let dbConnected = false;
+
+const requireDatabase = async (req, res, next) => {
+    try {
+        // If already connected, proceed
+        if (mongoose.connection.readyState === 1) {
+            dbConnected = true;
+            return next();
+        }
+
+        // Try to connect if not already attempted
+        if (!dbConnected) {
+            console.log('Attempting to connect to database...');
+            await connectDB();
+            dbConnected = true;
+            console.log('Database connected on first request');
+        }
+
+        if (mongoose.connection.readyState === 1) {
+            next();
+        } else {
+            return res.status(503).json({
+                message: 'Database unavailable. Please try again shortly.'
+            });
+        }
+    } catch (err) {
+        console.error('Database connection error:', err.message);
         return res.status(503).json({
             message: 'Database unavailable. Please try again shortly.'
         });
     }
-    next();
 };
 
-app.use('/api/auth', requireDatabase, require('./routes/authRoutes'));
-app.use('/api/complaints', requireDatabase, require('./routes/complaintRoutes'));
+// Wrapper for async middleware
+const asyncMiddleware = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+app.use('/api/auth', asyncMiddleware(requireDatabase), require('./routes/authRoutes'));
+app.use('/api/complaints', asyncMiddleware(requireDatabase), require('./routes/complaintRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
+
+// Initialize database and start listening
+const startServer = async () => {
+    try {
+        await connectDB();
+        console.log('Database connected successfully');
+    } catch (err) {
+        console.error('Failed to connect to database:', err.message);
+        // Continue anyway for serverless, but log the error
+    }
+};
 
 // For Vercel serverless - export the app
 module.exports = app;
@@ -58,5 +95,10 @@ module.exports = app;
 // For local development
 if (require.main === module) {
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+    startServer().then(() => {
+        app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+    }).catch(err => {
+        console.error('Server startup error:', err);
+        process.exit(1);
+    });
 }

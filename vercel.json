@@ -1,4 +1,12 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -8,5 +16,8 @@
       "source": "/(.*)",
       "destination": "/"
     }
-  ]
+  ],
+  "env": {
+    "NODEJS_HELPERS": "true"
+  }
 }
