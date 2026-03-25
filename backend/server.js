@@ -36,31 +36,31 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-let dbConnected = false;
+let dbConnectionAttempt = false;
 
 const requireDatabase = async (req, res, next) => {
     try {
         // If already connected, proceed
         if (mongoose.connection.readyState === 1) {
-            dbConnected = true;
             return next();
         }
 
-        // Try to connect if not already attempted
-        if (!dbConnected) {
-            console.log('Attempting to connect to database...');
+        // Try to connect on first request (only once)
+        if (!dbConnectionAttempt) {
+            dbConnectionAttempt = true;
+            console.log('Attempting to connect to database on first request...');
             await connectDB();
-            dbConnected = true;
             console.log('Database connected on first request');
         }
 
+        // Check connection again after connection attempt
         if (mongoose.connection.readyState === 1) {
-            next();
-        } else {
-            return res.status(503).json({
-                message: 'Database unavailable. Please try again shortly.'
-            });
+            return next();
         }
+
+        return res.status(503).json({
+            message: 'Database unavailable. Please try again shortly.'
+        });
     } catch (err) {
         console.error('Database connection error:', err.message);
         return res.status(503).json({
