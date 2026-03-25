@@ -49,8 +49,15 @@ const requireDatabase = async (req, res, next) => {
         if (!dbConnectionAttempt) {
             dbConnectionAttempt = true;
             console.log('Attempting to connect to database on first request...');
-            await connectDB();
-            console.log('Database connected on first request');
+            console.log('MongoDB URI available:', !!process.env.MONGODB_URI);
+            try {
+                await connectDB();
+                console.log('Database connected on first request');
+            } catch (connectErr) {
+                console.error('Database connection failed:', connectErr.message);
+                dbConnectionAttempt = false; // Reset flag to allow retry on next request
+                throw connectErr;
+            }
         }
 
         // Check connection again after connection attempt
@@ -62,7 +69,7 @@ const requireDatabase = async (req, res, next) => {
             message: 'Database unavailable. Please try again shortly.'
         });
     } catch (err) {
-        console.error('Database connection error:', err.message);
+        console.error('Database middleware error:', err.message);
         return res.status(503).json({
             message: 'Database unavailable. Please try again shortly.'
         });
