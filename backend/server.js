@@ -48,13 +48,18 @@ const requireDatabase = async (req, res, next) => {
         // Try to connect on first request (only once)
         if (!dbConnectionAttempt) {
             dbConnectionAttempt = true;
-            console.log('Attempting to connect to database on first request...');
-            console.log('MongoDB URI available:', !!process.env.MONGODB_URI);
+            console.log('[DB] Attempting to connect to database on first request...');
+            console.log('[DB] MongoDB URI available:', !!process.env.MONGODB_URI);
+            console.log('[DB] Environment:', {
+                VERCEL: !!process.env.VERCEL,
+                NODE_ENV: process.env.NODE_ENV
+            });
             try {
                 await connectDB();
-                console.log('Database connected on first request');
+                console.log('[DB] Database connected successfully on first request');
             } catch (connectErr) {
-                console.error('Database connection failed:', connectErr.message);
+                console.error('[DB] Connection failed:', connectErr.message);
+                console.error('[DB] Stack:', connectErr.stack);
                 dbConnectionAttempt = false; // Reset flag to allow retry on next request
                 throw connectErr;
             }
@@ -65,13 +70,20 @@ const requireDatabase = async (req, res, next) => {
             return next();
         }
 
+        const readyState = mongoose.connection.readyState;
+        const stateNames = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+        console.warn(`[DB] Connection state: ${stateNames[readyState]} (${readyState})`);
+
         return res.status(503).json({
-            message: 'Database unavailable. Please try again shortly.'
+            message: 'Database unavailable. Please try again shortly.',
+            connectionState: stateNames[readyState]
         });
     } catch (err) {
-        console.error('Database middleware error:', err.message);
+        console.error('[DB] Middleware error:', err.message);
+        console.error('[DB] Stack:', err.stack);
         return res.status(503).json({
-            message: 'Database unavailable. Please try again shortly.'
+            message: 'Database unavailable. Please try again shortly.',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };

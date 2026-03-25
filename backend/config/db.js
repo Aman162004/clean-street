@@ -16,18 +16,24 @@ const connectDB = async (retries = 3) => {
             throw new Error('Missing MongoDB connection string. Set MONGODB_URI in your environment.');
         }
 
-        await mongoose.connect(mongoUri, {
+        const mongoOptions = {
             serverSelectionTimeoutMS: 30000,
             connectTimeoutMS: 30000,
             socketTimeoutMS: 30000,
-            maxPoolSize: 5,
-            minPoolSize: 1,
+            maxPoolSize: process.env.VERCEL ? 1 : 5,
+            minPoolSize: 0,
             maxIdleTimeMS: 60000,
             retryWrites: true,
             family: 4,
-            // Disable connection pooling in serverless to prevent stale connections
-            ...(process.env.VERCEL && { maxPoolSize: 1 })
+            waitQueueTimeoutMS: 30000
+        };
+
+        console.log('Connecting to MongoDB with options:', {
+            ...mongoOptions, 
+            mongoUri: mongoUri.split('@')[1] // Log only the host part
         });
+
+        await mongoose.connect(mongoUri, mongoOptions);
         console.log('MongoDB Connected successfully');
         return;
     } catch (err) {
