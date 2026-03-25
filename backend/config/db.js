@@ -17,11 +17,12 @@ const connectDB = async (retries = 3) => {
         }
 
         await mongoose.connect(mongoUri, {
-            serverSelectionTimeoutMS: 10000,
-            connectTimeoutMS: 10000,
-            socketTimeoutMS: 15000,
+            serverSelectionTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            socketTimeoutMS: 30000,
             maxPoolSize: 10,
-            retryWrites: true
+            retryWrites: true,
+            family: 4
         });
         console.log('MongoDB Connected successfully');
         return;
