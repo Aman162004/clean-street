@@ -20,9 +20,13 @@ const connectDB = async (retries = 3) => {
             serverSelectionTimeoutMS: 30000,
             connectTimeoutMS: 30000,
             socketTimeoutMS: 30000,
-            maxPoolSize: 10,
+            maxPoolSize: 5,
+            minPoolSize: 1,
+            maxIdleTimeMS: 60000,
             retryWrites: true,
-            family: 4
+            family: 4,
+            // Disable connection pooling in serverless to prevent stale connections
+            ...(process.env.VERCEL && { maxPoolSize: 1 })
         });
         console.log('MongoDB Connected successfully');
         return;
