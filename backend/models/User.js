@@ -35,7 +35,6 @@ const User = {
             location: location || '',
             role: role || 'citizen',
             department: department || '',
-            profile_photo: profile_photo || '',
             phone: phone || ''
         });
 
