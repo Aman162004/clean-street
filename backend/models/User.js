@@ -8,7 +8,6 @@ const UserSchema = new mongoose.Schema(
         location: { type: String, default: '' },
         role: { type: String, enum: ['citizen', 'volunteer', 'admin'], default: 'citizen' },
         department: { type: String, default: '' },
-        profile_photo: { type: String, default: '' },
         phone: { type: String, default: '' }
     },
     {
