@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion } from 'framer-motion';
@@ -133,6 +133,20 @@ export default function MapSection({ onLocationSelect, showComplaints = true, ma
         return () => clearInterval(interval);
     }, [showComplaints]);
 
+    // Memoize filtered complaints to ensure re-rendering when filters change
+    const filteredComplaints = useMemo(() => {
+        return complaints.filter(complaint => {
+            const type = (complaint.type || 'other').toLowerCase();
+            const status = complaint.status || 'Pending';
+
+            const typeMatch = typeFilters[type] === true; // Show only if filter is explicitly true
+            const statusMatch = statusFilters[status] === true; // Show only if filter is explicitly true
+
+            return typeMatch && statusMatch;
+        });
+    }, [complaints, typeFilters, statusFilters]);
+
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -151,23 +165,13 @@ export default function MapSection({ onLocationSelect, showComplaints = true, ma
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <MapUpdater center={center} />
-                    {showComplaints && complaints
-                        .filter(complaint => {
-                            const type = (complaint.type || 'other').toLowerCase();
-                            const status = complaint.status || 'Pending';
+                    {showComplaints && filteredComplaints.map(complaint => {
+                        const lat = parseFloat(complaint.latitude);
+                        const lng = parseFloat(complaint.longitude);
+                        if (isNaN(lat) || isNaN(lng)) return null;
 
-                            const typeMatch = typeFilters[type] ?? true;
-                            const statusMatch = statusFilters[status] ?? true;
-
-                            return typeMatch && statusMatch;
-                        })
-                        .map(complaint => {
-                            const lat = parseFloat(complaint.latitude);
-                            const lng = parseFloat(complaint.longitude);
-                            if (isNaN(lat) || isNaN(lng)) return null;
-
-                            return (
-                                <Marker key={complaint.id} position={[lat, lng]} icon={landmarkIcon}>
+                        return (
+                            <Marker key={complaint.id} position={[lat, lng]} icon={landmarkIcon}>
                                 <Popup>
                                     <div className="p-1">
                                         <h6 className="fw-bold mb-1">{complaint.title || 'Untitled'}</h6>
