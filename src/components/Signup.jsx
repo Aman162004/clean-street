@@ -143,100 +143,175 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
 
     return (
         <div className="auth-card">
-            <div className="card">
-                <div className="card-body">
-                    <h2 className="card-title text-center mb-4">Register for CleanStreet</h2>
+            <div className="card" style={{
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                boxShadow: 'var(--shadow-lg)'
+            }}>
+                <div className="card-body p-4">
+                    <h2 className="card-title text-center mb-2" style={{ color: 'var(--text-primary)' }}>
+                        Create Your Account
+                    </h2>
+                    <p className="text-center mb-4" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        Register to help keep your city clean
+                    </p>
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label htmlFor="signupFullName" className="form-label">Full Name</label>
+                            <label htmlFor="signupFullName" className="form-label" style={{ color: 'var(--text-primary)' }}>Full Name</label>
                             <input
                                 type="text"
-                                className={`form-control ${errors.fullName ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="signupFullName"
                                 name="fullName"
-                                placeholder="Enter your full name"
+                                placeholder="John Doe"
                                 value={formData.fullName}
                                 onChange={handleChange}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.fullName ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.fullName && <div className="text-danger small mt-1">{errors.fullName}</div>}
+                            {errors.fullName && <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>{errors.fullName}</div>}
                         </div>
 
                         <div className="mb-3">
-                            <label htmlFor="signupUsername" className="form-label">Username</label>
+                            <label htmlFor="signupUsername" className="form-label" style={{ color: 'var(--text-primary)' }}>Username</label>
                             <input
                                 type="text"
-                                className={`form-control ${errors.username ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="signupUsername"
                                 name="username"
-                                placeholder="Choose a username"
+                                placeholder="johndoe"
                                 value={formData.username}
                                 onChange={handleChange}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.username ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.username && <div className="text-danger small mt-1">{errors.username}</div>}
+                            {errors.username && <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>{errors.username}</div>}
                         </div>
 
                         <div className="mb-3">
-                            <label htmlFor="signupEmail" className="form-label">Email</label>
+                            <label htmlFor="signupEmail" className="form-label" style={{ color: 'var(--text-primary)' }}>Email Address</label>
                             <input
                                 type="email"
-                                className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="signupEmail"
                                 name="email"
-                                placeholder="Enter your email"
+                                placeholder="john@example.com"
                                 value={formData.email}
                                 onChange={handleChange}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.email ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                            {errors.email && <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>{errors.email}</div>}
                         </div>
+
                         <div className="mb-3">
-                            <label className="form-label">Account type</label>
+                            <label className="form-label" style={{ color: 'var(--text-primary)' }}>Account Type</label>
                             <div
-                                className="form-control border-0 bg-body-secondary text-body fw-medium"
-                                style={{ cursor: 'default' }}
+                                className="form-control border-0"
+                                style={{
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)',
+                                    fontWeight: '500',
+                                    cursor: 'default'
+                                }}
                             >
                                 {roleLabel(expectedRole)} — use the navbar to pick a different registration type if needed.
                             </div>
                         </div>
 
+                        {expectedRole === 'volunteer' && (
+                            <div className="mb-3">
+                                <label htmlFor="signupDepartment" className="form-label" style={{ color: 'var(--text-primary)' }}>Department</label>
+                                <select 
+                                    className="form-select"
+                                    id="signupDepartment"
+                                    name="department"
+                                    value={formData.department}
+                                    onChange={handleChange}
+                                    style={{
+                                        backgroundColor: 'var(--bg-primary)',
+                                        borderColor: 'var(--border-primary)',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                >
+                                    <option value="Waste Management">Waste Management</option>
+                                    <option value="Roads & Transportation">Roads & Transportation</option>
+                                    <option value="Water & Sanitation">Water & Sanitation</option>
+                                    <option value="Electrical & Lighting">Electrical & Lighting</option>
+                                    <option value="Public Parks">Public Parks</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        )}
+
                         <div className="mb-3">
-                            <label htmlFor="signupPhone" className="form-label">Phone Number</label>
+                            <label htmlFor="signupPhone" className="form-label" style={{ color: 'var(--text-primary)' }}>Phone Number</label>
                             <input
                                 type="tel"
-                                className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="signupPhone"
                                 name="phone"
-                                placeholder="Enter your phone number"
+                                placeholder="+1 (555) 123-4567"
                                 value={formData.phone}
                                 onChange={handleChange}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.phone ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
+                            {errors.phone && <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>{errors.phone}</div>}
                         </div>
 
                         <div className="mb-4">
-                            <label htmlFor="signupPassword" className="form-label">Password</label>
+                            <label htmlFor="signupPassword" className="form-label" style={{ color: 'var(--text-primary)' }}>Password</label>
                             <input
                                 type="password"
-                                className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="signupPassword"
                                 name="password"
-                                placeholder="Create a password"
+                                placeholder="••••••••"
                                 value={formData.password}
                                 onChange={handleChange}
                                 onFocus={() => setPasswordFocused(true)}
                                 onBlur={() => setPasswordFocused(false)}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.password ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
+                            {errors.password && <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>{errors.password}</div>}
                             {passwordFocused && (
-                                <div className="mt-2">
-                                    <small className={passwordValidation.minLength ? 'text-success' : 'text-danger'}>
+                                <div className="mt-3 p-3 rounded-lg" style={{
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)'
+                                }}>
+                                    <small style={{
+                                        color: passwordValidation.minLength ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.minLength ? '✓' : '✗'} At least 8 characters
                                     </small>
-                                    <br />
-                                    <small className={passwordValidation.hasCapital ? 'text-success' : 'text-danger'}>
+                                    <small style={{
+                                        color: passwordValidation.hasCapital ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.hasCapital ? '✓' : '✗'} At least 1 capital letter
                                     </small>
-                                    <br />
-                                    <small className={passwordValidation.hasSpecial ? 'text-success' : 'text-danger'}>
+                                    <small style={{
+                                        color: passwordValidation.hasSpecial ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.hasSpecial ? '✓' : '✗'} At least 1 special character (!@#$%^&*...)
                                     </small>
                                 </div>
@@ -244,15 +319,21 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
                         </div>
                         <button
                             type="submit"
-                            className="btn btn-primary w-100 mb-3"
+                            className="btn btn-primary w-100 mb-3 fw-semibold"
+                            style={{
+                                backgroundColor: 'var(--primary-main)',
+                                borderColor: 'var(--primary-main)',
+                                color: 'white',
+                                padding: '0.75rem'
+                            }}
                         >
-                            Register
+                            Create Account
                         </button>
                         <div className="text-center">
-                            <small className="text-muted">
+                            <small style={{ color: 'var(--text-muted)' }}>
                                 Already have an account?{' '}
-                                <Link to={`/login/${expectedRole}`} className="text-decoration-none">
-                                    Login as {roleLabel(expectedRole)}
+                                <Link to={`/login/${expectedRole}`} style={{ color: 'var(--primary-main)' }} className="text-decoration-none fw-semibold">
+                                    Sign In as {roleLabel(expectedRole)}
                                 </Link>
                             </small>
                         </div>

@@ -111,56 +111,115 @@ function Login({ onLogin, expectedRole = 'citizen' }) {
 
     return (
         <div className="auth-card">
-            <div className="card">
-                <div className="card-body">
-                    <h2 className="card-title text-center mb-4">Login to CleanStreet</h2>
+            <div className="card" style={{
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                boxShadow: 'var(--shadow-lg)'
+            }}>
+                <div className="card-body p-4">
+                    <h2 className="card-title text-center mb-2" style={{ color: 'var(--text-primary)' }}>
+                        Welcome to CleanStreet
+                    </h2>
+                    <p className="text-center mb-4" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        Sign in to your account
+                    </p>
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label htmlFor="loginEmail" className="form-label">Email</label>
+                            <label htmlFor="loginEmail" className="form-label" style={{ color: 'var(--text-primary)' }}>
+                                Email Address
+                            </label>
                             <input
                                 type="email"
-                                className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="loginEmail"
-                                placeholder="Enter your email"
+                                placeholder="you@example.com"
                                 value={email}
                                 onChange={handleEmailChange}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.email ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                            {errors.email && (
+                                <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>
+                                    {errors.email}
+                                </div>
+                            )}
                         </div>
                         <div className="mb-4">
-                            <label htmlFor="loginPassword" className="form-label">Password</label>
+                            <label htmlFor="loginPassword" className="form-label" style={{ color: 'var(--text-primary)' }}>
+                                Password
+                            </label>
                             <input
                                 type="password"
-                                className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                                className="form-control"
                                 id="loginPassword"
-                                placeholder="Enter your password"
+                                placeholder="••••••••"
                                 value={password}
                                 onChange={handlePasswordChange}
                                 onFocus={() => setPasswordFocused(true)}
                                 onBlur={() => setPasswordFocused(false)}
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    borderColor: errors.password ? 'var(--status-danger)' : 'var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                             />
-                            {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
+                            {errors.password && (
+                                <div className="small mt-2" style={{ color: 'var(--status-danger)' }}>
+                                    {errors.password}
+                                </div>
+                            )}
                             {passwordFocused && (
-                                <div className="mt-2">
-                                    <small className={passwordValidation.minLength ? 'text-success' : 'text-danger'}>
+                                <div className="mt-3 p-3 rounded-lg" style={{
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)'
+                                }}>
+                                    <small style={{
+                                        color: passwordValidation.minLength ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.minLength ? '✓' : '✗'} At least 8 characters
                                     </small>
-                                    <br />
-                                    <small className={passwordValidation.hasCapital ? 'text-success' : 'text-danger'}>
+                                    <small style={{
+                                        color: passwordValidation.hasCapital ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.hasCapital ? '✓' : '✗'} At least 1 capital letter
                                     </small>
-                                    <br />
-                                    <small className={passwordValidation.hasSpecial ? 'text-success' : 'text-danger'}>
+                                    <small style={{
+                                        color: passwordValidation.hasSpecial ? 'var(--status-success)' : 'var(--status-danger)',
+                                        display: 'block'
+                                    }}>
                                         {passwordValidation.hasSpecial ? '✓' : '✗'} At least 1 special character (!@#$%^&*...)
                                     </small>
                                 </div>
                             )}
                         </div>
-                        <button type="submit" className="btn btn-primary w-100 mb-3">Login</button>
+                        <button
+                            type="submit"
+                            className="btn btn-lg w-100 fw-bold rounded-lg text-white border-0"
+                            style={{
+                                backgroundColor: 'var(--primary-main)',
+                                transition: 'var(--transition-normal)',
+                                padding: '0.75rem'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = 'var(--shadow-lg)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = 'none';
+                            }}
+                        >
+                            Sign In
+                        </button>
                         <div className="text-center">
-                            <small className="text-muted">
+                            <small style={{ color: 'var(--text-muted)' }}>
                                 Don't have an account?{' '}
-                                <Link to={`/signup/${expectedRole}`} className="text-decoration-none">
+                                <Link to={`/signup/${expectedRole}`} style={{ color: 'var(--primary-main)' }} className="text-decoration-none fw-semibold">
                                     Register as {roleLabel(expectedRole)}
                                 </Link>
                             </small>

@@ -48,24 +48,91 @@ const PublicNavbar = () => {
                 backdropFilter: 'blur(10px)',
             }}
         >
-            <div className="container-fluid px-3 px-lg-4 py-1">
-                <Link to="/" className="navbar-brand d-flex align-items-center gap-2 text-decoration-none py-1">
-                    <div className="d-flex align-items-center justify-content-center" style={{ width: '38px', height: '38px' }}>
-                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#22C55E" />
-                                    <stop offset="100%" stopColor="#14B8A6" />
-                                </linearGradient>
-                            </defs>
-                            <rect width="32" height="32" rx="6" fill="url(#navLogoGradient)" />
-                            <path
-                                d="M6 18V26H10V18H6ZM11 15V26H15V15H11ZM16 17V26H20V17H16ZM21 19V26H25V19H21Z"
-                                fill="white"
+            <div className="container-fluid px-3 px-lg-4 py-2">
+                <Link to="/" className="navbar-brand d-flex align-items-center gap-2 gap-lg-3 text-decoration-none py-1" style={{ flexWrap: 'wrap' }}>
+                    {/* Section 1: Municipal Seal with Label */}
+                    <div className="d-flex align-items-center gap-2">
+                        {/* Municipal Seal Icon */}
+                        <div className="d-flex align-items-center justify-content-center" style={{ 
+                            width: '56px', 
+                            height: '56px',
+                            flexShrink: 0
+                        }}>
+                            <img 
+                                src="/Seal_of_the_Municipal_Corporation_Of_Delhi.png" 
+                                alt="Municipal Corporation of India" 
+                                style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    objectFit: 'contain'
+                                }}
+                                title="Municipal Corporation of India"
                             />
-                        </svg>
+                        </div>
+                        
+                        {/* Municipal Label */}
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '2px',
+                            minWidth: '140px'
+                        }}>
+                            <span className="fw-bold" style={{ 
+                                color: 'var(--text-primary)', 
+                                fontSize: '0.75rem', 
+                                fontWeight: '600',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>Municipal</span>
+                            <span className="fw-bold" style={{ 
+                                color: 'var(--text-primary)', 
+                                fontSize: '0.9rem'
+                            }}>Corporation of Delhi</span>
+                        </div>
                     </div>
-                    <span className="fw-bold fs-4" style={{ color: '#000000' }}>CleanStreet</span>
+
+                    {/* Vertical Divider */}
+                    <div style={{ 
+                        width: '2px', 
+                        height: '45px', 
+                        backgroundColor: 'var(--primary-main)',
+                        opacity: 0.3,
+                        margin: '0 0.5rem'
+                    }} />
+
+                    {/* Section 2: CleanStreet Logo with Label */}
+                    <div className="d-flex align-items-center gap-2">
+                        {/* CleanStreet Logo */}
+                        <div className="d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px', flexShrink: 0 }}>
+                            <img 
+                                src="/clean_street_logo.jpg" 
+                                alt="CleanStreet Logo" 
+                                style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    objectFit: 'contain'
+                                }}
+                            />
+                        </div>
+
+                        {/* CleanStreet Label */}
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '2px',
+                            minWidth: '100px'
+                        }}>
+                            <span className="fw-bold" style={{ 
+                                color: 'var(--primary-main)', 
+                                fontSize: '1.1rem'
+                            }}>CleanStreet</span>
+                            <span style={{ 
+                                color: 'var(--text-muted)', 
+                                fontSize: '0.7rem',
+                                fontWeight: '500'
+                            }}>Civic Platform</span>
+                        </div>
+                    </div>
                 </Link>
 
                 <button

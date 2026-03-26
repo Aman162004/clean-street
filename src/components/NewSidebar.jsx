@@ -51,33 +51,36 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
         <>
             {/* Sidebar */}
             <motion.aside
-                className="sidebar position-fixed top-0 start-0 h-100 shadow-lg d-flex flex-column"
+                className="sidebar position-fixed top-0 start-0 h-100 d-flex flex-column"
                 style={{
                     zIndex: 1040,
                     width: isOpen ? '280px' : '80px',
-                    borderRight: '1px solid var(--bs-border-color)',
-                    transition: 'width 0.3s ease',
-                    backgroundColor: 'var(--sidebar-bg)'
+                    borderRight: '1px solid var(--border-primary)',
+                    backgroundColor: 'var(--bg-primary)',
+                    boxShadow: 'var(--shadow-lg)',
+                    transition: 'width 0.3s ease'
                 }}
                 initial={false}
             >
                 {/* Logo Section */}
                 <div
-                    className="d-flex align-items-center px-4 py-3 border-bottom"
+                    className="d-flex align-items-center px-4 py-3"
                     style={{
                         height: '70px',
-                        backgroundColor: 'var(--bs-body-bg)',
-                        borderColor: 'var(--bs-border-color)'
+                        backgroundColor: 'var(--bg-surface)',
+                        borderBottom: '1px solid var(--border-primary)'
                     }}
                 >
                     <div className="d-flex align-items-center">
+                        {/* Logo Badge - Solid Primary Color */}
                         <div className="rounded-2 d-flex align-items-center justify-content-center me-3"
                             style={{
                                 width: '40px',
                                 height: '40px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                backgroundColor: 'var(--primary-main)',
+                                color: 'white'
                             }}>
-                            <span className="text-white fw-bold fs-5">CS</span>
+                            <span className="fw-bold fs-5">CS</span>
                         </div>
                         {isOpen && (
                             <motion.div
@@ -85,15 +88,15 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.1 }}
                             >
-                                <h5 className="mb-0 fw-bold" style={{ color: 'var(--bs-body-color)' }}>CleanStreet</h5>
-                                <small style={{ color: 'var(--bs-secondary-color)' }}>Smart City Solution</small>
+                                <h5 className="mb-0 fw-bold" style={{ color: 'var(--text-primary)' }}>CleanStreet</h5>
+                                <small style={{ color: 'var(--text-muted)' }}>Smart City Solution</small>
                             </motion.div>
                         )}
                     </div>
                 </div>
 
                 {/* Navigation Menu */}
-                <nav className="flex-grow-1 p-3">
+                <nav className="flex-grow-1 p-3" style={{ overflowY: 'auto' }}>
                     <div className="nav flex-column">
                         {menuItems.map((item, index) => {
                             const isActive = location.pathname === item.path;
@@ -105,28 +108,21 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                     onClick={() => navigate(item.path)}
                                     whileHover={{ scale: 1.02, x: 4 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className={`btn d-flex align-items-center w-100 text-start border-0 rounded-3 mb-2 p-3 position-relative ${isActive
-                                            ? 'nav-link active text-white'
-                                            : 'bg-transparent'
-                                        }`}
+                                    className="btn d-flex align-items-center w-100 text-start border-0 rounded-lg mb-2 p-3 position-relative"
                                     style={{
-                                        background: isActive
-                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                            : 'transparent',
-                                        color: !isActive ? 'var(--bs-body-color)' : 'white',
-                                        boxShadow: isActive
-                                            ? '0 4px 12px rgba(102, 126, 234, 0.3)'
-                                            : 'none',
-                                        transition: 'all 0.3s ease'
+                                        backgroundColor: isActive ? 'var(--primary-main)' : 'transparent',
+                                        color: isActive ? 'white' : 'var(--text-primary)',
+                                        boxShadow: isActive ? 'var(--shadow-md)' : 'none',
+                                        transition: 'var(--transition-fast)'
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isActive) {
-                                            e.target.style.backgroundColor = 'var(--hover-item-bg)';
+                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!isActive) {
-                                            e.target.style.backgroundColor = 'transparent';
+                                            e.currentTarget.style.backgroundColor = 'transparent';
                                         }
                                     }}
                                 >
@@ -146,8 +142,13 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                     )}
                                     {isActive && (
                                         <motion.div
-                                            className="position-absolute top-50 translate-middle-y bg-white rounded-pill"
-                                            style={{ right: '8px', width: '4px', height: '20px' }}
+                                            className="position-absolute top-50 translate-middle-y rounded-pill"
+                                            style={{
+                                                right: '8px',
+                                                width: '4px',
+                                                height: '20px',
+                                                backgroundColor: 'white'
+                                            }}
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
                                         />
@@ -159,19 +160,23 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                 </nav>
 
                 {/* User Section */}
-                <div className="p-3 border-top" style={{
-                    backgroundColor: 'var(--bs-body-bg)',
-                    borderColor: 'var(--bs-border-color)'
+                <div className="p-3" style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderTop: '1px solid var(--border-primary)'
                 }}>
                     {/* User Profile */}
-                    <div className={`d-flex align-items-center mb-3 p-3 rounded-3 shadow-sm ${!isOpen ? 'justify-content-center' : ''}`}
-                        style={{ backgroundColor: 'var(--card-bg)' }}>
+                    <div className={`d-flex align-items-center mb-3 p-3 rounded-lg ${!isOpen ? 'justify-content-center' : ''}`}
+                        style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            boxShadow: 'var(--shadow-sm)'
+                        }}>
+                        {/* Avatar - Solid Primary Color */}
                         <div
                             className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
                             style={{
                                 width: '44px',
                                 height: '44px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                backgroundColor: 'var(--primary-main)',
                                 fontSize: '14px'
                             }}
                         >
@@ -183,8 +188,8 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                             >
-                                <p className="mb-0 fw-semibold text-truncate" style={{ color: 'var(--bs-body-color)' }}>{user?.name || 'User'}</p>
-                                <small className="text-capitalize" style={{ color: 'var(--bs-secondary-color)' }}>{user?.role || 'Citizen'}</small>
+                                <p className="mb-0 fw-semibold text-truncate" style={{ color: 'var(--text-primary)' }}>{user?.name || 'User'}</p>
+                                <small className="text-capitalize" style={{ color: 'var(--text-muted)' }}>{user?.role || 'Citizen'}</small>
                             </motion.div>
                         )}
                     </div>
@@ -194,8 +199,13 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                         onClick={toggleTheme}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`btn btn-outline-secondary w-100 d-flex align-items-center border-2 rounded-3 p-3 mb-2 ${!isOpen ? 'justify-content-center' : ''}`}
-                        style={{ transition: 'all 0.3s ease' }}
+                        className={`btn w-100 d-flex align-items-center border rounded-lg p-3 mb-2 ${!isOpen ? 'justify-content-center' : ''}`}
+                        style={{
+                            borderColor: 'var(--primary-main)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--primary-main)',
+                            transition: 'var(--transition-fast)'
+                        }}
                         title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                     >
                         {theme === 'light' ? <Moon size={20} className={`${isOpen ? 'me-3' : ''}`} /> : <Sun size={20} className={`${isOpen ? 'me-3' : ''}`} />}
@@ -215,8 +225,12 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                         onClick={onLogout}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`btn btn-outline-danger w-100 d-flex align-items-center border-2 rounded-3 p-3 ${!isOpen ? 'justify-content-center' : ''}`}
-                        style={{ transition: 'all 0.3s ease' }}
+                        className={`btn btn-danger w-100 d-flex align-items-center rounded-lg p-3 ${!isOpen ? 'justify-content-center' : ''}`}
+                        style={{
+                            backgroundColor: 'var(--status-danger)',
+                            border: 'none',
+                            transition: 'var(--transition-fast)'
+                        }}
                     >
                         <LogOut size={20} className={`${isOpen ? 'me-3' : ''}`} />
                         {isOpen && (
@@ -235,8 +249,12 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-lg-none"
-                    style={{ zIndex: 1030 }}
+                    className="position-fixed top-0 start-0 w-100 h-100 d-lg-none"
+                    style={{
+                        zIndex: 1030,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        backdropFilter: 'blur(4px)'
+                    }}
                     onClick={toggleSidebar}
                 />
             )}

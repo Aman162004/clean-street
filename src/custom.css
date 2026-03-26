@@ -1287,6 +1287,11 @@ body {
     font-weight: 800 !important;
 }
 
+/* Override for white text in newsletter section */
+.newsletter-heading {
+    color: white !important;
+}
+
 /* Dark Mode Table Text */
 [data-bs-theme="dark"] table small,
 [data-bs-theme="dark"] table .small {
