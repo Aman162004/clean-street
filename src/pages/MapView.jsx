@@ -1,8 +1,16 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import MapSection from '../components/MapSection';
 
 function MapView() {
+    const location = useLocation();
+    const focusLat = location.state?.focusLat ? Number(location.state.focusLat) : null;
+    const focusLng = location.state?.focusLng ? Number(location.state.focusLng) : null;
+    const focusPoint = (focusLat !== null && focusLng !== null && !Number.isNaN(focusLat) && !Number.isNaN(focusLng))
+        ? { lat: focusLat, lng: focusLng }
+        : null;
+
     return (
         <div className="container-fluid px-3 px-md-4 py-3">
             <motion.div
@@ -21,7 +29,7 @@ function MapView() {
                     {/* Map Section */}
                     <div className="col-12 col-lg-9">
                         <div style={{ height: 'calc(100vh - 250px)', minHeight: '500px' }}>
-                            <MapSection />
+                            <MapSection focusPoint={focusPoint} />
                         </div>
                     </div>
 

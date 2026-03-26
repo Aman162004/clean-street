@@ -97,16 +97,22 @@ function LocationMarker({ onLocationSelect, initialPosition }) {
     );
 }
 
-export default function MapSection({ onLocationSelect, showComplaints = true, markerPosition }) {
+export default function MapSection({ onLocationSelect, showComplaints = true, markerPosition, focusPoint }) {
     const [center, setCenter] = useState([10.8505, 76.2711]); // Default: Kerala
     const [complaints, setComplaints] = useState([]);
 
-    // Update center when marker position changes
+    // Update center when marker position changes (report mode)
     useEffect(() => {
         if (markerPosition) {
             setCenter([markerPosition.lat, markerPosition.lng]);
+            return;
         }
-    }, [markerPosition]);
+
+        if (focusPoint) {
+            setCenter([focusPoint.lat, focusPoint.lng]);
+            return;
+        }
+    }, [markerPosition, focusPoint]);
 
     useEffect(() => {
         if (!showComplaints) return;
@@ -162,6 +168,16 @@ export default function MapSection({ onLocationSelect, showComplaints = true, ma
                             </Marker>
                         );
                     })}
+                    {focusPoint && (
+                        <Marker position={[focusPoint.lat, focusPoint.lng]} icon={selectedLocationIcon}>
+                            <Popup>
+                                <div className="text-center">
+                                    <strong>📍 Selected issue</strong>
+                                    <p className="small mb-0">Centered from View on Map</p>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    )}
                     {onLocationSelect && <LocationMarker onLocationSelect={onLocationSelect} initialPosition={markerPosition} />}
                 </MapContainer>
             </div>
