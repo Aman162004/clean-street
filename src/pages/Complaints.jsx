@@ -400,6 +400,32 @@ function Complaints() {
                                             </div>
                                         )}
 
+                                        {/* Display complaint image if available */}
+                                        {complaint.photo && complaint.photo.trim() !== '' && (
+                                            <div className="mb-3">
+                                                <img
+                                                    src={complaint.photo}
+                                                    alt="Complaint evidence"
+                                                    className="img-fluid rounded-3 shadow-sm"
+                                                    style={{
+                                                        maxHeight: '300px',
+                                                        width: '100%',
+                                                        objectFit: 'cover',
+                                                        border: '2px solid rgba(96, 165, 250, 0.3)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => window.open(complaint.photo, '_blank')}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        console.error('Failed to load complaint image:', complaint.photo);
+                                                    }}
+                                                />
+                                                <p className="text-muted small mt-2 mb-0">
+                                                    <i>Click image to view full size</i>
+                                                </p>
+                                            </div>
+                                        )}
+
                                         {viewMode === 'all' && (
                                             <div className="mb-3">
                                                 <div className="d-flex flex-wrap gap-2 mb-2">
