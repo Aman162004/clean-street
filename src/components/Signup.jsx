@@ -10,7 +10,8 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         email: '',
         phone: '',
         password: '',
-        role: expectedRole
+        role: expectedRole,
+        department: 'Waste Management'
     })
     const navigate = useNavigate();
 
@@ -110,13 +111,14 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         const registerUser = async () => {
             try {
                 // Map fullName to name for backend
-                const { fullName, email, password, role, phone } = formData;
+                const { fullName, email, password, role, phone, department } = formData;
                 const response = await api.post('/auth/register', {
                     name: fullName,
                     email,
                     password,
                     role,
-                    phone
+                    phone,
+                    department: role === 'volunteer' ? department : ''
                 });
 
                 // Store token and auth state
