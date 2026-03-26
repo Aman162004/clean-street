@@ -97,7 +97,7 @@ function LocationMarker({ onLocationSelect, initialPosition }) {
     );
 }
 
-export default function MapSection({ onLocationSelect, showComplaints = true, markerPosition, focusPoint }) {
+export default function MapSection({ onLocationSelect, showComplaints = true, markerPosition, focusPoint, typeFilters = {}, statusFilters = {} }) {
     const [center, setCenter] = useState([10.8505, 76.2711]); // Default: Kerala
     const [complaints, setComplaints] = useState([]);
 
@@ -151,13 +151,23 @@ export default function MapSection({ onLocationSelect, showComplaints = true, ma
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <MapUpdater center={center} />
-                    {showComplaints && complaints.map(complaint => {
-                        const lat = parseFloat(complaint.latitude);
-                        const lng = parseFloat(complaint.longitude);
-                        if (isNaN(lat) || isNaN(lng)) return null;
+                    {showComplaints && complaints
+                        .filter(complaint => {
+                            const type = (complaint.type || 'other').toLowerCase();
+                            const status = complaint.status || 'Pending';
 
-                        return (
-                            <Marker key={complaint.id} position={[lat, lng]} icon={landmarkIcon}>
+                            const typeMatch = typeFilters[type] ?? true;
+                            const statusMatch = statusFilters[status] ?? true;
+
+                            return typeMatch && statusMatch;
+                        })
+                        .map(complaint => {
+                            const lat = parseFloat(complaint.latitude);
+                            const lng = parseFloat(complaint.longitude);
+                            if (isNaN(lat) || isNaN(lng)) return null;
+
+                            return (
+                                <Marker key={complaint.id} position={[lat, lng]} icon={landmarkIcon}>
                                 <Popup>
                                     <div className="p-1">
                                         <h6 className="fw-bold mb-1">{complaint.title || 'Untitled'}</h6>
