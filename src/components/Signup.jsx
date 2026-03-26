@@ -14,7 +14,9 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         department: 'Waste Management'
     })
     const navigate = useNavigate();
-
+    const STATES = {
+    "Delhi": ["North", "North-East", "North-West", "West", "South", "South-West", "South-East", "New Delhi", "Central", "Shahdara", "East"],
+    };
     const [passwordValidation, setPasswordValidation] = useState({
         minLength: false,
         hasCapital: false,
@@ -29,7 +31,9 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         username: '',
         email: '',
         phone: '',
-        password: ''
+        password: '',
+        state: '',
+    district: '',
     })
 
     useEffect(() => {
@@ -90,7 +94,10 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
                 newErrors.phone = 'Please enter a valid phone number (at least 10 digits)'
             }
         }
-
+        if (['volunteer','admin'].includes(expectedRole)) {
+         if (!formData.state) newErrors.state = 'State is required';
+        if (!formData.district) newErrors.district = 'District is required';
+        }
         if (!password) {
             newErrors.password = 'Password is required'
         } else {
@@ -111,14 +118,16 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         const registerUser = async () => {
             try {
                 // Map fullName to name for backend
-                const { fullName, email, password, role, phone, department } = formData;
+                const { fullName, email, password, role, phone, department,state , district } = formData;
                 const response = await api.post('/auth/register', {
                     name: fullName,
                     email,
                     password,
                     role,
                     phone,
-                    department: role === 'volunteer' ? department : ''
+                    department: role === 'volunteer' ? department : '',
+                    state,
+                    district
                 });
 
                 // Store token and auth state
@@ -229,6 +238,48 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
                                 {roleLabel(expectedRole)} — use the navbar to pick a different registration type if needed.
                             </div>
                         </div>
+                        {['volunteer','admin'].includes(expectedRole) && (
+  <>
+    <div className="mb-3">
+      <label className="form-label">State</label>
+      <select
+        className="form-control"
+        name="state"
+        value={formData.state}
+        onChange={(e) => {
+          handleChange(e);
+          // reset district when state changes
+          setFormData(prev => ({ ...prev, district: '' }));
+        }}
+        required
+      >
+        <option value="">Select state</option>
+        {Object.keys(STATES).map((st) => (
+          <option key={st} value={st}>{st}</option>
+        ))}
+      </select>
+      {errors.state && <div className="text-danger small mt-1">{errors.state}</div>}
+    </div>
+
+    <div className="mb-3">
+      <label className="form-label">District</label>
+      <select
+        className="form-control"
+        name="district"
+        value={formData.district}
+        onChange={handleChange}
+        required
+        disabled={!formData.state}
+      >
+        <option value="">Select district</option>
+        {(STATES[formData.state] || []).map((d) => (
+          <option key={d} value={d}>{d}</option>
+        ))}
+      </select>
+      {errors.district && <div className="text-danger small mt-1">{errors.district}</div>}
+    </div>
+  </>
+)}
 
                         {expectedRole === 'volunteer' && (
                             <div className="mb-3">

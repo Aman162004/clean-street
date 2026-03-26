@@ -26,7 +26,7 @@ const verifyToken = (req, res, next) => {
 // REGISTER
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, location, role, department, phone } = req.body;
+        const { name, email, password, location, role, department, phone, state, district } = req.body;
 
         const existing = await User.findByEmail(email);
 

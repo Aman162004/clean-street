@@ -8,7 +8,9 @@ const UserSchema = new mongoose.Schema(
         location: { type: String, default: '' },
         role: { type: String, enum: ['citizen', 'volunteer', 'admin'], default: 'citizen' },
         department: { type: String, default: '' },
-        phone: { type: String, default: '' }
+        phone: { type: String, default: '' },
+        state: { type: String, default: '' },
+    district: { type: String, default: '' },
     },
     {
         timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
@@ -27,7 +29,7 @@ const toUserObject = (doc) => {
 };
 
 const User = {
-    async create({ name, email, password, location, role, department, profile_photo, phone }) {
+    async create({ name, email, password, location, role, department, profile_photo, phone, state, district }) {
         const user = await UserModel.create({
             name,
             email: String(email).toLowerCase(),
@@ -35,7 +37,10 @@ const User = {
             location: location || '',
             role: role || 'citizen',
             department: department || '',
-            phone: phone || ''
+            phone: phone || '',
+            state: state || '',
+            district: district || ''
+
         });
 
         return toUserObject(user);
