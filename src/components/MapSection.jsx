@@ -23,6 +23,16 @@ const selectedLocationIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// Use same red landmark pointer in map view for all plotted complaints to match requested style
+const landmarkIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
 // Component to handle map center changes
 function MapUpdater({ center }) {
     const map = useMap();
@@ -141,7 +151,7 @@ export default function MapSection({ onLocationSelect, showComplaints = true, ma
                         if (isNaN(lat) || isNaN(lng)) return null;
 
                         return (
-                            <Marker key={complaint.id} position={[lat, lng]}>
+                            <Marker key={complaint.id} position={[lat, lng]} icon={landmarkIcon}>
                                 <Popup>
                                     <div className="p-1">
                                         <h6 className="fw-bold mb-1">{complaint.title || 'Untitled'}</h6>

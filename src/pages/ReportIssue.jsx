@@ -28,11 +28,45 @@ const ReportIssue = () => {
     const [markerPosition, setMarkerPosition] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
 
+    const reverseGeocode = useCallback(async (latitude, longitude) => {
+        if (latitude == null || longitude == null) return;
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await response.json();
+            if (data && data.display_name) {
+                setFormData(prev => ({ ...prev, address: data.display_name }));
+            }
+        } catch (err) {
+            console.warn('Reverse geocoding failed:', err);
+        }
+    }, []);
+
     useEffect(() => {
         const role = localStorage.getItem('userRole');
         setUserRole(role);
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const latitude = Number(position.coords.latitude);
+                    const longitude = Number(position.coords.longitude);
+                    setFormData(prev => ({ ...prev, latitude, longitude }));
+                    setMarkerPosition({ lat: latitude, lng: longitude });
+                    reverseGeocode(latitude, longitude);
+                    setGeocodeError('Location auto-detected from your browser. You can adjust it on the map.');
+                },
+                (err) => {
+                    console.warn('Geolocation error:', err);
+                    setGeocodeError('Unable to auto-detect location. Please enter address or click map to set position.');
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+            );
+        } else {
+            setGeocodeError('Geolocation is not supported by your browser. Please enter address manually.');
+        }
+
         setLoading(false);
-    }, []);
+    }, [reverseGeocode]);
 
     // Geocoding function using OpenStreetMap Nominatim API
     const geocodeAddress = useCallback(async (address) => {
