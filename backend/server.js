@@ -40,49 +40,59 @@ let dbConnectionAttempt = false;
 
 const requireDatabase = async (req, res, next) => {
     try {
-        // If already connected, proceed
+        // If connected, proceed
         if (mongoose.connection.readyState === 1) {
+            console.log('[Middleware] Database already connected, proceeding...');
             return next();
         }
 
-        // Try to connect on first request (only once)
+        // Only attempt connection once per function lifecycle
         if (!dbConnectionAttempt) {
             dbConnectionAttempt = true;
-            console.log('[DB] Attempting to connect to database on first request...');
-            console.log('[DB] MongoDB URI available:', !!process.env.MONGODB_URI);
-            console.log('[DB] Environment:', {
-                VERCEL: !!process.env.VERCEL,
-                NODE_ENV: process.env.NODE_ENV
-            });
+            console.log('[Middleware] First request - attempting database connection');
+            
             try {
                 await connectDB();
-                console.log('[DB] Database connected successfully on first request');
+                console.log('[Middleware] ✅ Connection successful');
+                return next();
             } catch (connectErr) {
-                console.error('[DB] Connection failed:', connectErr.message);
-                console.error('[DB] Stack:', connectErr.stack);
-                dbConnectionAttempt = false; // Reset flag to allow retry on next request
-                throw connectErr;
+                console.error('[Middleware] ❌ Connection failed:', connectErr.message);
+                return res.status(503).json({
+                    success: false,
+                    message: 'Database connection failed. Please try again in a moment.',
+                    error: process.env.NODE_ENV === 'development' ? connectErr.message : undefined
+                });
             }
         }
 
-        // Check connection again after connection attempt
+        // If connection was attempted but not ready after a short wait
+        const maxWaits = 5;
+        let waitCount = 0;
+        
+        while (mongoose.connection.readyState !== 1 && waitCount < maxWaits) {
+            console.log(`[Middleware] Waiting for connection... (${waitCount + 1}/${maxWaits})`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            waitCount++;
+        }
+
         if (mongoose.connection.readyState === 1) {
+            console.log('[Middleware] Connection ready after waiting');
             return next();
         }
 
-        const readyState = mongoose.connection.readyState;
         const stateNames = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
-        console.warn(`[DB] Connection state: ${stateNames[readyState]} (${readyState})`);
-
+        console.error(`[Middleware] Connection timeout - state: ${stateNames[mongoose.connection.readyState]}`);
+        
         return res.status(503).json({
+            success: false,
             message: 'Database unavailable. Please try again shortly.',
-            connectionState: stateNames[readyState]
+            connectionState: stateNames[mongoose.connection.readyState]
         });
     } catch (err) {
-        console.error('[DB] Middleware error:', err.message);
-        console.error('[DB] Stack:', err.stack);
+        console.error('[Middleware] Unexpected error:', err.message);
         return res.status(503).json({
-            message: 'Database unavailable. Please try again shortly.',
+            success: false,
+            message: 'Service temporarily unavailable.',
             error: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }

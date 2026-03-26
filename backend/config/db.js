@@ -1,13 +1,17 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-mongoose.set('bufferCommands', false);
+mongoose.set('bufferCommands', true); // Enable buffer for serverless
 mongoose.set('strictQuery', true);
+
+// Cache the connection promise to reuse across invocations in serverless
+let cachedConnection = null;
 
 const connectDB = async (retries = 3) => {
     try {
+        // If already connected, return immediately
         if (mongoose.connection.readyState === 1) {
-            console.log('Already connected to MongoDB');
+            console.log('[Connection] Already connected to MongoDB');
             return;
         }
 
@@ -15,6 +19,11 @@ const connectDB = async (retries = 3) => {
         if (!mongoUri) {
             throw new Error('Missing MongoDB connection string. Set MONGODB_URI in your environment.');
         }
+
+        // Log connection attempt
+        console.log('[Connection] Starting MongoDB connection...');
+        console.log('[Connection] Database:', mongoUri.split('/').pop().split('?')[0]);
+        console.log('[Connection] Retries available:', retries);
 
         const mongoOptions = {
             serverSelectionTimeoutMS: 30000,
@@ -28,24 +37,22 @@ const connectDB = async (retries = 3) => {
             waitQueueTimeoutMS: 30000
         };
 
-        console.log('Connecting to MongoDB with options:', {
-            ...mongoOptions, 
-            mongoUri: mongoUri.split('@')[1] // Log only the host part
-        });
-
         await mongoose.connect(mongoUri, mongoOptions);
-        console.log('MongoDB Connected successfully');
+        console.log('[Connection] ✅ MongoDB connected successfully');
+        
+        // Cache connection
+        cachedConnection = mongoose.connection;
         return;
     } catch (err) {
-        console.error(`Database Connection Error (attempt): ${err.message}`);
+        console.error(`[Connection] ❌ Error: ${err.message}`);
 
         if (retries > 0) {
-            console.log(`Retrying in 2 seconds... (${retries} attempts left)`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log(`[Connection] Retrying in 1 second... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
             return connectDB(retries - 1);
         }
 
-        console.error('Failed to connect to MongoDB after all retries');
+        console.error('[Connection] ❌ Failed to connect after all retries');
         throw err;
     }
 };
