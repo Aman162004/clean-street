@@ -11,7 +11,9 @@ function Signup({ onLogin, expectedRole = 'citizen' }) {
         phone: '',
         password: '',
         role: expectedRole,
-        department: 'Waste Management'
+        department: 'Waste Management',
+        state: '',
+        district: ''
     })
     const navigate = useNavigate();
     const STATES = {

@@ -6,6 +6,9 @@ const toObjectId = (value) => {
     return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
 };
 
+const normalizeDistrict = (value) => String(value || '').trim();
+const normalizeState = (value) => String(value || '').trim();
+
 const VoteSchema = new mongoose.Schema(
     {
         user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -37,6 +40,8 @@ const ComplaintSchema = new mongoose.Schema(
         status: { type: String, default: 'Pending' },
         photo: { type: String, default: '' },
         proof_photo: { type: String, default: '' },
+        state: { type: String, default: '' },
+        district: { type: String, default: '' },
         assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
         votes: { type: [VoteSchema], default: [] },
         comments: { type: [CommentSchema], default: [] }
@@ -80,6 +85,8 @@ const toComplaintPayload = (doc, currentUserId = null) => {
         volunteer_name: complaint.assigned_to?.name,
         volunteer_email: complaint.assigned_to?.email,
         proof_photo: complaint.proof_photo,
+        state: complaint.state || '',
+        district: complaint.district || '',
         upvotes,
         downvotes,
         comment_count: (complaint.comments || []).length,
@@ -88,7 +95,7 @@ const toComplaintPayload = (doc, currentUserId = null) => {
 };
 
 const Complaint = {
-    async create({ user_id, title, department, assigned_to, type, priority, address, landmark, description, latitude, longitude, photo, status }) {
+    async create({ user_id, title, department, assigned_to, type, priority, address, landmark, description, latitude, longitude, photo, status, state, district }) {
         const payload = {
             user_id: toObjectId(user_id),
             title,
@@ -101,7 +108,9 @@ const Complaint = {
             latitude,
             longitude,
             photo: photo || '',
-            proof_photo: ''
+            proof_photo: '',
+            state: normalizeState(state),
+            district: normalizeDistrict(district)
         };
         if (assigned_to !== undefined && assigned_to !== null) {
             payload.assigned_to = toObjectId(assigned_to);
@@ -125,12 +134,12 @@ const Complaint = {
         return complaint ? toComplaintPayload(complaint) : null;
     },
 
-    async getStats() {
+    async getStats(filters = {}) {
         const [total, pending, inProgress, resolved] = await Promise.all([
-            ComplaintModel.countDocuments({}),
-            ComplaintModel.countDocuments({ $or: [{ status: 'Pending' }, { status: null }, { status: '' }] }),
-            ComplaintModel.countDocuments({ status: 'In Progress' }),
-            ComplaintModel.countDocuments({ status: 'Resolved' })
+            ComplaintModel.countDocuments(filters),
+            ComplaintModel.countDocuments({ ...filters, $or: [{ status: 'Pending' }, { status: null }, { status: '' }] }),
+            ComplaintModel.countDocuments({ ...filters, status: 'In Progress' }),
+            ComplaintModel.countDocuments({ ...filters, status: 'Resolved' })
         ]);
 
         return {
@@ -141,8 +150,8 @@ const Complaint = {
         };
     },
 
-    async getRecent(limit = 5) {
-        const recent = await ComplaintModel.find({}).sort({ created_at: -1 }).limit(limit);
+    async getRecent(limit = 5, filters = {}) {
+        const recent = await ComplaintModel.find(filters).sort({ created_at: -1 }).limit(limit);
         return recent.map(c => toComplaintPayload(c));
     },
 
@@ -172,10 +181,10 @@ const Complaint = {
         return updated ? toComplaintPayload(updated) : null;
     },
 
-    async findAllWithDetails(currentUserId = null) {
-        const complaints = await ComplaintModel.find({})
-            .populate('user_id', 'name email phone role')
-            .populate('assigned_to', 'name email role')
+    async findAllWithDetails(currentUserId = null, filters = {}) {
+        const complaints = await ComplaintModel.find(filters)
+            .populate('user_id', 'name email phone role district state')
+            .populate('assigned_to', 'name email role district department')
             .sort({ created_at: -1 });
 
         return complaints.map(c => toComplaintPayload(c, currentUserId)).sort(sortComplaints);
@@ -186,8 +195,8 @@ const Complaint = {
         if (!objId) return [];
 
         const complaints = await ComplaintModel.find({ user_id: objId })
-            .populate('user_id', 'name email phone role')
-            .populate('assigned_to', 'name email role')
+            .populate('user_id', 'name email phone role district state')
+            .populate('assigned_to', 'name email role district department')
             .sort({ created_at: -1 });
 
         return complaints.map(c => toComplaintPayload(c, currentUserId));
@@ -198,8 +207,8 @@ const Complaint = {
         if (!objId) return [];
 
         const complaints = await ComplaintModel.find({ assigned_to: objId })
-            .populate('user_id', 'name email phone role')
-            .populate('assigned_to', 'name email role')
+            .populate('user_id', 'name email phone role district state')
+            .populate('assigned_to', 'name email role district department')
             .sort({ created_at: -1 });
 
         return complaints.map(c => toComplaintPayload(c)).sort((a, b) => {
@@ -209,6 +218,16 @@ const Complaint = {
             if (sa !== sb) return sa - sb;
             return sortComplaints(a, b);
         });
+    },
+
+    async findByIdWithDetails(complaintId, currentUserId = null) {
+        if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
+
+        const complaint = await ComplaintModel.findById(complaintId)
+            .populate('user_id', 'name email phone role district state')
+            .populate('assigned_to', 'name email role district department');
+
+        return complaint ? toComplaintPayload(complaint, currentUserId) : null;
     },
 
     async voteComplaint(complaintId, userId, voteType) {
