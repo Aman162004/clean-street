@@ -6,10 +6,16 @@ import MapSection from '../components/MapSection';
 import { api } from '../lib/api';
 
 const ReportIssue = () => {
+    const STATES = {
+        Delhi: ["North", "North-East", "North-West", "West", "South", "South-West", "South-East", "New Delhi", "Central", "Shahdara", "East"]
+    };
+
     const [formData, setFormData] = useState({
         title: '',
         type: '',
         priority: '',
+        state: '',
+        district: '',
         address: '',
         landmark: '',
         description: '',
@@ -171,6 +177,8 @@ const ReportIssue = () => {
             payload.append('title', formData.title);
             payload.append('type', formData.type);
             payload.append('priority', formData.priority);
+            payload.append('state', formData.state);
+            payload.append('district', formData.district);
             payload.append('address', formData.address);
             payload.append('landmark', formData.landmark || '');
             payload.append('description', formData.description);
@@ -224,7 +232,7 @@ const ReportIssue = () => {
                             onClick={() => {
                                 setIsSuccess(false);
                                 setFormData({
-                                    title: '', type: '', priority: '', address: '', landmark: '', description: '', latitude: null, longitude: null
+                                    title: '', type: '', priority: '', state: '', district: '', address: '', landmark: '', description: '', latitude: null, longitude: null
                                 });
                                 setPhotoFile(null);
                                 setMarkerPosition(null);
@@ -319,6 +327,44 @@ const ReportIssue = () => {
                                                 <option value="Medium">Medium</option>
                                                 <option value="High">High</option>
                                                 <option value="Critical">Critical</option>
+                                            </select>
+                                        </div>
+
+                                        {/* State */}
+                                        <div className="col-12 col-md-6">
+                                            <label className="form-label fw-semibold" style={{ color: '#ef4444' }}>State</label>
+                                            <select
+                                                name="state"
+                                                className="form-select"
+                                                value={formData.state}
+                                                onChange={(e) => {
+                                                    const nextState = e.target.value;
+                                                    setFormData((prev) => ({ ...prev, state: nextState, district: '' }));
+                                                }}
+                                                required
+                                            >
+                                                <option value="" disabled>Select state</option>
+                                                {Object.keys(STATES).map((stateName) => (
+                                                    <option key={stateName} value={stateName}>{stateName}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* District */}
+                                        <div className="col-12 col-md-6">
+                                            <label className="form-label fw-semibold" style={{ color: '#ef4444' }}>District</label>
+                                            <select
+                                                name="district"
+                                                className="form-select"
+                                                value={formData.district}
+                                                onChange={handleChange}
+                                                disabled={!formData.state}
+                                                required
+                                            >
+                                                <option value="" disabled>Select district</option>
+                                                {(STATES[formData.state] || []).map((districtName) => (
+                                                    <option key={districtName} value={districtName}>{districtName}</option>
+                                                ))}
                                             </select>
                                         </div>
 

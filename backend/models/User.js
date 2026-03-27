@@ -57,7 +57,7 @@ const User = {
         return toUserObject(user);
     },
 
-    async updateProfile(id, { name, email, phone, location, department }) {
+    async updateProfile(id, { name, email, phone, location, department, state, district }) {
         if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
         const updatePayload = {};
@@ -66,6 +66,8 @@ const User = {
         if (phone !== undefined) updatePayload.phone = phone;
         if (location !== undefined) updatePayload.location = location;
         if (department !== undefined) updatePayload.department = department;
+        if (state !== undefined) updatePayload.state = state;
+        if (district !== undefined) updatePayload.district = district;
 
         const updated = await UserModel.findByIdAndUpdate(id, updatePayload, { new: true });
         return toUserObject(updated);
@@ -85,6 +87,12 @@ const User = {
     async findVolunteersByDepartment(department) {
         if (!department) return [];
         const users = await UserModel.find({ role: 'volunteer', department });
+        return users.map(toUserObject);
+    },
+
+    async findVolunteersByDepartmentAndDistrict(department, district) {
+        if (!department || !district) return [];
+        const users = await UserModel.find({ role: 'volunteer', department, district });
         return users.map(toUserObject);
     }
 };

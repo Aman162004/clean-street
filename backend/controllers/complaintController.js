@@ -3,6 +3,40 @@ const User = require('../models/User');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { uploadBufferToCloudinary } = require('../middlewares/upload');
 
+const DELHI_DISTRICTS = [
+    'North',
+    'North-East',
+    'North-West',
+    'West',
+    'South',
+    'South-West',
+    'South-East',
+    'New Delhi',
+    'Central',
+    'Shahdara',
+    'East'
+];
+
+const normalize = (value) => String(value || '').trim();
+
+const matchesNormalized = (a, b) => normalize(a).toLowerCase() === normalize(b).toLowerCase();
+
+const inferDistrictFromAddress = (address) => {
+    const normalizedAddress = normalize(address).toLowerCase();
+    if (!normalizedAddress) return '';
+
+    const matched = DELHI_DISTRICTS.find((district) => normalizedAddress.includes(district.toLowerCase()));
+    return matched || '';
+};
+
+const getUserDistrict = async (userId) => {
+    const user = await User.findById(userId);
+    return {
+        user,
+        district: normalize(user?.district)
+    };
+};
+
 const ensureCitizen = (req, res) => {
     const role = String(req.user.role || '').toLowerCase();
     if (role !== 'citizen') {
@@ -21,7 +55,7 @@ const createComplaint = async (req, res) => {
         console.log('Body:', req.body);
         console.log('User from Token:', req.user);
 
-        const { title, type, priority, address, landmark, description, latitude, longitude } = req.body;
+        const { title, type, priority, address, landmark, description, latitude, longitude, state, district } = req.body;
         const user_id = req.user ? req.user.id : null;
         let photo = '';
 
@@ -45,7 +79,6 @@ const createComplaint = async (req, res) => {
         }
 
         let assignedDepartment = 'Other';
-        let assignedVolunteerId = null;
         let complaintStatus = 'Pending';
 
         try {
@@ -87,20 +120,22 @@ Description: ${description}`;
             // Fallback to Other
         }
 
-        if (assignedDepartment !== 'Other') {
-            const volunteers = await User.findVolunteersByDepartment(assignedDepartment);
-            if (volunteers && volunteers.length > 0) {
-                const randomVolunteer = volunteers[Math.floor(Math.random() * volunteers.length)];
-                assignedVolunteerId = randomVolunteer.id;
-                complaintStatus = 'In Progress';
-            }
+        const citizen = await User.findById(user_id);
+        const complaintState = normalize(state) || normalize(citizen?.state);
+        const complaintDistrict = normalize(district) || normalize(citizen?.district) || inferDistrictFromAddress(address);
+
+        if (!complaintState || !complaintDistrict) {
+            return res.status(400).json({
+                success: false,
+                message: 'State and district are required to submit a complaint.'
+            });
         }
 
         const complaint = await Complaint.create({
             user_id,
             title,
             department: assignedDepartment,
-            assigned_to: assignedVolunteerId,
+            assigned_to: null,
             status: complaintStatus,
             type,
             priority,
@@ -109,7 +144,9 @@ Description: ${description}`;
             description,
             latitude: latitude !== undefined && latitude !== null && latitude !== '' ? Number(latitude) : null,
             longitude: longitude !== undefined && longitude !== null && longitude !== '' ? Number(longitude) : null,
-            photo
+            photo,
+            state: complaintState,
+            district: complaintDistrict
         });
 
         res.status(201).json({
@@ -125,6 +162,26 @@ Description: ${description}`;
 
 const getAllComplaints = async (req, res) => {
     try {
+        const role = normalize(req.user.role).toLowerCase();
+
+        if (role === 'volunteer') {
+            const complaints = await Complaint.findByVolunteerId(req.user.id);
+            return res.json({ success: true, data: complaints });
+        }
+
+        if (role === 'admin') {
+            const { district: adminDistrict } = await getUserDistrict(req.user.id);
+            if (!adminDistrict) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Admin profile must have district set before viewing complaints.'
+                });
+            }
+
+            const complaints = await Complaint.findAllWithDetails(req.user.id, { district: adminDistrict });
+            return res.json({ success: true, data: complaints });
+        }
+
         const complaints = await Complaint.findAllWithDetails(req.user.id);
         res.json({ success: true, data: complaints });
     } catch (err) {
@@ -202,8 +259,24 @@ const getComplaintComments = async (req, res) => {
 
 const getDashboardStats = async (req, res) => {
     try {
-        const stats = await Complaint.getStats();
-        const recent = await Complaint.getRecent();
+        const role = normalize(req.user.role).toLowerCase();
+        let filters = {};
+
+        if (role === 'admin') {
+            const { district: adminDistrict } = await getUserDistrict(req.user.id);
+            if (!adminDistrict) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Admin profile must have district set before viewing stats.'
+                });
+            }
+            filters = { district: adminDistrict };
+        } else if (role === 'volunteer') {
+            filters = { assigned_to: req.user.id };
+        }
+
+        const stats = await Complaint.getStats(filters);
+        const recent = await Complaint.getRecent(5, filters);
 
         res.json({
             success: true,
@@ -233,6 +306,61 @@ const assignVolunteer = async (req, res) => {
             });
         }
 
+        if (!complaintId || !volunteerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'complaintId and volunteerId are required.'
+            });
+        }
+
+        const [{ user: adminUser, district: adminDistrict }, complaint, volunteerUser] = await Promise.all([
+            getUserDistrict(req.user.id),
+            Complaint.findByIdWithDetails(complaintId, req.user.id),
+            User.findById(volunteerId)
+        ]);
+
+        if (!adminUser || !adminDistrict) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin profile must have district set before assigning volunteers.'
+            });
+        }
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found'
+            });
+        }
+
+        if (!matchesNormalized(complaint.district, adminDistrict)) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only assign volunteers to complaints in your district.'
+            });
+        }
+
+        if (!volunteerUser || normalize(volunteerUser.role).toLowerCase() !== 'volunteer') {
+            return res.status(400).json({
+                success: false,
+                message: 'Selected user is not a volunteer.'
+            });
+        }
+
+        if (!matchesNormalized(volunteerUser.district, adminDistrict)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Volunteer must belong to your district.'
+            });
+        }
+
+        if (!matchesNormalized(volunteerUser.department, complaint.department)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Volunteer department must match complaint department.'
+            });
+        }
+
         const updatedComplaint = await Complaint.assignVolunteer(complaintId, volunteerId);
         
         if (!updatedComplaint) {
@@ -257,13 +385,46 @@ const updateComplaintStatus = async (req, res) => {
     try {
         const { complaintId } = req.params;
         const { status } = req.body;
+        const role = normalize(req.user.role).toLowerCase();
         
         // Check if user is admin or volunteer
-        if (!['admin', 'volunteer'].includes(req.user.role)) {
+        if (!['admin', 'volunteer'].includes(role)) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Access denied. Admin or volunteer privileges required.' 
             });
+        }
+
+        const complaint = await Complaint.findByIdWithDetails(complaintId, req.user.id);
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found'
+            });
+        }
+
+        if (role === 'volunteer' && !matchesNormalized(complaint.assigned_to, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only update complaints assigned to you.'
+            });
+        }
+
+        if (role === 'admin') {
+            const { district: adminDistrict } = await getUserDistrict(req.user.id);
+            if (!adminDistrict) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Admin profile must have district set before updating complaint status.'
+                });
+            }
+
+            if (!matchesNormalized(complaint.district, adminDistrict)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only update complaints from your district.'
+                });
+            }
         }
 
         const updatedComplaint = await Complaint.updateStatus(complaintId, status);
@@ -291,7 +452,7 @@ const getVolunteerComplaints = async (req, res) => {
         const volunteerId = req.user.id;
         
         // Check if user is volunteer
-        if (req.user.role !== 'volunteer') {
+        if (normalize(req.user.role).toLowerCase() !== 'volunteer') {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Access denied. Volunteer privileges required.' 

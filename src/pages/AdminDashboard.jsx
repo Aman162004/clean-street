@@ -12,6 +12,16 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [selectedComplaint, setSelectedComplaint] = useState(null);
 
+    const normalize = (value) => String(value || '').trim().toLowerCase();
+
+    const getEligibleVolunteers = (complaint) => {
+        return volunteers.filter((volunteer) => {
+            const districtMatch = normalize(volunteer.district) === normalize(complaint.district);
+            //const departmentMatch = normalize(volunteer.department) === normalize(complaint.department);
+            return districtMatch ;//&& departmentMatch;
+        });
+    };
+
     useEffect(() => {
         fetchAdminData();
         
@@ -77,7 +87,7 @@ const AdminDashboard = () => {
             setSelectedComplaint(null);
         } catch (err) {
             console.error('Error assigning volunteer:', err);
-            alert('Failed to assign volunteer');
+            alert(err.message || 'Failed to assign volunteer');
         }
     };
 
@@ -237,7 +247,9 @@ const AdminDashboard = () => {
                                                             </td>
                                                         </tr>
                                                     ) : (
-                                                        complaints.map(complaint => (
+                                                        complaints.map(complaint => {
+                                                            const eligibleVolunteers = getEligibleVolunteers(complaint);
+                                                            return (
                                                             <tr key={complaint.id}>
                                                                 <td>{complaint.id}</td>
                                                                 <td>
@@ -267,9 +279,10 @@ const AdminDashboard = () => {
                                                                             }
                                                                         }}
                                                                         style={{ minWidth: '180px' }}
+                                                                        disabled={eligibleVolunteers.length === 0}
                                                                     >
                                                                         <option value="">-- Select Volunteer --</option>
-                                                                        {volunteers.map(volunteer => (
+                                                                        {eligibleVolunteers.map(volunteer => (
                                                                             <option key={volunteer.id} value={volunteer.id}>
                                                                                 {volunteer.name}
                                                                             </option>
@@ -280,10 +293,15 @@ const AdminDashboard = () => {
                                                                             Current: {complaint.volunteer_name}
                                                                         </small>
                                                                     )}
+                                                                    {eligibleVolunteers.length === 0 && (
+                                                                        <small className="text-danger d-block mt-1">
+                                                                            No volunteer available for this complaint district and department.
+                                                                        </small>
+                                                                    )}
                                                                 </td>
                                                                 <td>{new Date(complaint.created_at).toLocaleDateString()}</td>
                                                             </tr>
-                                                        ))
+                                                        )})
                                                     )}
                                                 </tbody>
                                             </table>

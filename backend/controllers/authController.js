@@ -45,7 +45,9 @@ exports.register = async (req, res) => {
             location,
             role,
             department,
-            phone
+            phone,
+            state,
+            district
         });
 
         //JWT
@@ -87,7 +89,7 @@ exports.login = async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department || '', location: user.location || '', phone: user.phone || '', createdAt: user.created_at } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department || '', location: user.location || '', phone: user.phone || '', state: user.state || '', district: user.district || '', createdAt: user.created_at } });
 
     } catch (err) {
         console.error('Login error:', err);
@@ -113,6 +115,8 @@ exports.getProfile = async (req, res) => {
                 department: user.department,
                 location: user.location,
                 phone: user.phone,
+                state: user.state,
+                district: user.district,
                 createdAt: user.created_at
             }
         });
@@ -125,7 +129,7 @@ exports.getProfile = async (req, res) => {
 // UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, email, phone, location, department } = req.body;
+        const { name, email, phone, location, department, state, district } = req.body;
         const userId = req.user.id;
 
         // Check if email is being changed and if it already exists
@@ -141,7 +145,9 @@ exports.updateProfile = async (req, res) => {
             email,
             phone: phone || '',
             location: location || '',
-            department: department || ''
+            department: department || '',
+            state: state || '',
+            district: district || ''
         });
 
         res.json({
@@ -154,6 +160,8 @@ exports.updateProfile = async (req, res) => {
                 department: updatedUser.department,
                 location: updatedUser.location,
                 phone: updatedUser.phone,
+                state: updatedUser.state,
+                district: updatedUser.district,
                 createdAt: updatedUser.created_at
             }
         });
