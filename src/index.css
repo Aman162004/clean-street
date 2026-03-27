@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Dark Theme - Enhanced Colorful Version */
 :root,
 [data-bs-theme="dark"] {

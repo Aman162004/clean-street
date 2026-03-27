@@ -33,6 +33,9 @@ const landmarkIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// Central Delhi coordinates used as the default map focus
+const DELHI_CENTER = [28.6139, 77.2090];
+
 // Component to handle map center changes
 function MapUpdater({ center }) {
     const map = useMap();
@@ -98,7 +101,7 @@ function LocationMarker({ onLocationSelect, initialPosition }) {
 }
 
 export default function MapSection({ onLocationSelect, showComplaints = true, markerPosition, focusPoint, typeFilters = {}, statusFilters = {} }) {
-    const [center, setCenter] = useState([10.8505, 76.2711]); // Default: Kerala
+    const [center, setCenter] = useState(DELHI_CENTER); // Default: Delhi
     const [complaints, setComplaints] = useState([]);
 
     // Update center when marker position changes (report mode)

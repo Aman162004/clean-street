@@ -164,6 +164,50 @@ button {
   margin: 0;
 }
 
+/* Shared aurora background usable across pages (auth, dashboard, hero shells) */
+.app-aurora-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.app-aurora-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.12), transparent 40%),
+              radial-gradient(circle at 80% 10%, rgba(236, 72, 153, 0.08), transparent 35%);
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.app-aurora-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.assigned-complaints-card {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.assigned-complaints-card .card-header {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(17, 24, 39, 0.9));
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.assigned-complaints-card .card-header h5,
+.assigned-complaints-card .card-header .fw-bold {
+  color: #e2e8f0;
+}
+
+.assigned-complaints-card .card-body {
+  background: transparent;
+}
+
 /* Card Body */
 .card-body {
   padding: var(--space-lg);

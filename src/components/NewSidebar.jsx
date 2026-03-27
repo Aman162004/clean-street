@@ -55,9 +55,9 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                 style={{
                     zIndex: 1040,
                     width: isOpen ? '280px' : '80px',
-                    borderRight: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-primary)',
-                    boxShadow: 'var(--shadow-lg)',
+                    borderRight: '1px solid rgba(255,255,255,0.06)',
+                    backgroundColor: '#050505',
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 20px 40px rgba(0,0,0,0.55)',
                     transition: 'width 0.3s ease'
                 }}
                 initial={false}
@@ -67,8 +67,8 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                     className="d-flex align-items-center px-4 py-3"
                     style={{
                         height: '70px',
-                        backgroundColor: 'var(--bg-surface)',
-                        borderBottom: '1px solid var(--border-primary)'
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)'
                     }}
                 >
                     <div className="d-flex align-items-center">
@@ -77,8 +77,9 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                             style={{
                                 width: '40px',
                                 height: '40px',
-                                backgroundColor: 'var(--primary-main)',
-                                color: 'white'
+                                backgroundColor: '#111826',
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.06)'
                             }}>
                             <span className="fw-bold fs-5">CS</span>
                         </div>
@@ -88,8 +89,8 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.1 }}
                             >
-                                <h5 className="mb-0 fw-bold" style={{ color: 'var(--text-primary)' }}>CleanStreet</h5>
-                                <small style={{ color: 'var(--text-muted)' }}>Smart City Solution</small>
+                                <h5 className="mb-0 fw-bold" style={{ color: '#e5e7eb' }}>CleanStreet</h5>
+                                <small style={{ color: '#9ca3af' }}>Smart City Solution</small>
                             </motion.div>
                         )}
                     </div>
@@ -110,14 +111,14 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                     whileTap={{ scale: 0.98 }}
                                     className="btn d-flex align-items-center w-100 text-start border-0 rounded-lg mb-2 p-3 position-relative"
                                     style={{
-                                        backgroundColor: isActive ? 'var(--primary-main)' : 'transparent',
-                                        color: isActive ? 'white' : 'var(--text-primary)',
-                                        boxShadow: isActive ? 'var(--shadow-md)' : 'none',
+                                        backgroundColor: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
+                                        color: isActive ? '#e5e7eb' : '#d1d5db',
+                                        boxShadow: isActive ? '0 12px 28px rgba(0,0,0,0.35)' : 'none',
                                         transition: 'var(--transition-fast)'
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isActive) {
-                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
                                         }
                                     }}
                                     onMouseLeave={(e) => {
@@ -147,7 +148,7 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                                                 right: '8px',
                                                 width: '4px',
                                                 height: '20px',
-                                                backgroundColor: 'white'
+                                                backgroundColor: '#e5e7eb'
                                             }}
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
@@ -161,14 +162,15 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
 
                 {/* User Section */}
                 <div className="p-3" style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderTop: '1px solid var(--border-primary)'
+                    backgroundColor: '#050505',
+                    borderTop: '1px solid rgba(255,255,255,0.06)'
                 }}>
                     {/* User Profile */}
                     <div className={`d-flex align-items-center mb-3 p-3 rounded-lg ${!isOpen ? 'justify-content-center' : ''}`}
                         style={{
-                            backgroundColor: 'var(--bg-surface)',
-                            boxShadow: 'var(--shadow-sm)'
+                            backgroundColor: 'rgba(255,255,255,0.03)',
+                            boxShadow: '0 10px 24px rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255,255,255,0.06)'
                         }}>
                         {/* Avatar - Solid Primary Color */}
                         <div
@@ -201,9 +203,9 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                         whileTap={{ scale: 0.98 }}
                         className={`btn w-100 d-flex align-items-center border rounded-lg p-3 mb-2 ${!isOpen ? 'justify-content-center' : ''}`}
                         style={{
-                            borderColor: 'var(--primary-main)',
-                            backgroundColor: 'transparent',
-                            color: 'var(--primary-main)',
+                            borderColor: 'rgba(255,255,255,0.12)',
+                            backgroundColor: 'rgba(255,255,255,0.03)',
+                            color: '#e5e7eb',
                             transition: 'var(--transition-fast)'
                         }}
                         title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
@@ -227,8 +229,8 @@ const NewSidebar = ({ isOpen, toggleSidebar, onLogout, user }) => {
                         whileTap={{ scale: 0.98 }}
                         className={`btn btn-danger w-100 d-flex align-items-center rounded-lg p-3 ${!isOpen ? 'justify-content-center' : ''}`}
                         style={{
-                            backgroundColor: 'var(--status-danger)',
-                            border: 'none',
+                            backgroundColor: '#ef4444',
+                            border: '1px solid rgba(255,255,255,0.08)',
                             transition: 'var(--transition-fast)'
                         }}
                     >

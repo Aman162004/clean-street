@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import PublicNavbar from '../components/PublicNavbar';
 
 const AuthLayout = ({ children, title, subtitle }) => {
+    useEffect(() => {
+        document.body.classList.add('aurora-page');
+        return () => {
+            document.body.classList.remove('aurora-page');
+        };
+    }, []);
+
     return (
         <>
             <PublicNavbar />
-            <div className="min-vh-100 d-flex align-items-center justify-content-center p-4 position-relative overflow-hidden">
+            <div className="min-vh-100 d-flex align-items-center justify-content-center p-4 position-relative overflow-hidden app-aurora-bg">
                 {/* Background elements inherited from body/index.css but we ensure full height centering here */}
 
                 <motion.div

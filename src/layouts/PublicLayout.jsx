@@ -6,7 +6,7 @@ const PublicLayout = ({ children }) => {
     return (
         <>
             <PublicNavbar />
-            <main className="min-vh-100" style={{ paddingTop: 'var(--public-navbar-height, 88px)' }}>
+            <main className="min-vh-100 app-aurora-bg" style={{ paddingTop: 'var(--public-navbar-height, 88px)' }}>
                 {children}
             </main>
             <footer

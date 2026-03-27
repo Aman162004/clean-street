@@ -48,14 +48,16 @@ const HalideLanding: React.FC = () => {
     <>
       <style>{`
         :root {
-          --bg: #0a1f3e;
-          --silver: #ffffff;
-          --accent: #ff9933;
-          --grain-opacity: 0.15;
+          --bg: #0f172a;
+          --silver: #e8ecf5;
+          --accent: #10b981;
+          --grain-opacity: 0.12;
         }
 
         .halide-body {
-          background-color: var(--bg);
+          background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.06), transparent 35%),
+                      radial-gradient(circle at 80% 10%, rgba(16,185,129,0.08), transparent 30%),
+                      var(--bg);
           color: var(--silver);
           font-family: 'Syncopate', sans-serif;
           overflow: hidden;
@@ -105,9 +107,9 @@ const HalideLanding: React.FC = () => {
           transition: transform 0.5s ease;
         }
 
-        .layer-1 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.15) brightness(0.65) sepia(0.25); }
-        .layer-2 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.1) brightness(0.7); opacity: 0.6; mix-blend-mode: screen; }
-        .layer-3 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.25) brightness(0.75); opacity: 0.4; mix-blend-mode: overlay; }
+        .layer-1 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.05) brightness(1.05); }
+        .layer-2 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.05) brightness(1.05); opacity: 0.5; mix-blend-mode: screen; }
+        .layer-3 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.1) brightness(1.1); opacity: 0.35; mix-blend-mode: soft-light; }
         
         .contours {
           position: absolute;
@@ -136,7 +138,7 @@ const HalideLanding: React.FC = () => {
           font-size: clamp(3rem, 10vw, 10rem);
           line-height: 0.85;
           letter-spacing: -0.04em;
-          mix-blend-mode: difference;
+          color: #e8ecf5;
         }
 
         .hero-subcopy {
@@ -145,7 +147,7 @@ const HalideLanding: React.FC = () => {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           font-size: clamp(1rem, 2vw, 1.35rem);
           line-height: 1.6;
-          color: rgba(255,255,255,0.8);
+          color: rgba(232,236,245,0.82);
           letter-spacing: -0.01em;
         }
 
@@ -161,19 +163,19 @@ const HalideLanding: React.FC = () => {
           align-items: center;
           gap: 0.5rem;
           padding: 0.65rem 1rem;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(232,236,245,0.08);
+          border: 1px solid rgba(232,236,245,0.15);
           border-radius: 999px;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           font-size: 0.95rem;
-          color: #fff;
+          color: #e8ecf5;
           backdrop-filter: blur(6px);
         }
 
         .cta-button {
           pointer-events: auto;
-          background: var(--silver);
-          color: var(--bg);
+          background: var(--accent);
+          color: #0b1220;
           padding: 1rem 2rem;
           text-decoration: none;
           font-weight: 700;
@@ -183,7 +185,7 @@ const HalideLanding: React.FC = () => {
           border: none;
         }
 
-        .cta-button:hover { background: var(--accent); transform: translateY(-5px); }
+        .cta-button:hover { background: #0d9a80; transform: translateY(-5px); }
 
         .scroll-hint {
           position: absolute;
@@ -212,27 +214,27 @@ const HalideLanding: React.FC = () => {
         <div className="halide-grain" style={{ filter: 'url(#grain)' }}></div>
 
         <div className="interface-grid">
-          <div style={{ fontWeight: 700 }}>CLEAN_STREET</div>
+          <div style={{ fontWeight: 700 }}>CLEAN DELHI</div>
           <div style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--accent)', fontSize: '0.7rem' }}>
             <div>LATITUDE: 28.7041° N</div>
             <div>LONGITUDE: 77.1025° E</div>
           </div>
 
-          <h1 className="hero-title">CLEAN<br />DELHI</h1>
+          <h1 className="hero-title">CLEAN<br />STREET</h1>
 
           <div className="hero-subcopy">
             A city-wide cleanliness drive powered by real-time issue reporting, volunteer action, and transparent follow-through. Map every pothole, overflow, and dark spot—and watch teams resolve them faster.
           </div>
 
           <div className="stats-row">
-            <div className="stat-pill">⚡ 24/7 reporting</div>
-            <div className="stat-pill">🛰️ Map-first workflows</div>
-            <div className="stat-pill">🤝 Citizens · Volunteers · Admins</div>
+            <div className="stat-pill"> 24/7 reporting</div>
+            <div className="stat-pill"> Map-first workflows</div>
+            <div className="stat-pill"> Citizens · Volunteers · Admins</div>
           </div>
 
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
-              <p style={{ margin: 0 }}>[ INITIATIVE 2024 ]</p>
+              <p style={{ margin: 0 }}>[ INITIATIVE 2026 ]</p>
               <p style={{ margin: 0 }}>CIVIC ENGAGEMENT · URBAN MAPPING · LIGHTING & WASTE</p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', pointerEvents: 'auto' }}>

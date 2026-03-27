@@ -1,11 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import { Menu, Sun, Moon, Search, Bell, ChevronDown } from 'lucide-react';
+import { Menu, Search, Bell, ChevronDown } from 'lucide-react';
 
 const NewHeader = ({ toggleSidebar, user, sidebarWidth = 80 }) => {
-    const { theme, toggleTheme } = useTheme();
     const location = useLocation();
 
     const getPageTitle = () => {
@@ -139,21 +137,6 @@ const NewHeader = ({ toggleSidebar, user, sidebarWidth = 80 }) => {
                     >
                         3
                     </span>
-                </motion.button>
-
-                {/* Theme Toggle */}
-                <motion.button
-                    onClick={toggleTheme}
-                    className="btn btn-light rounded-3 p-2 border-0"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--primary-main)',
-                        transition: 'var(--transition-fast)'
-                    }}
-                >
-                    {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                 </motion.button>
 
                 {/* Divider */}

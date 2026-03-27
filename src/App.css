@@ -1,8 +1,39 @@
+@import "./components/ui/animated-glow-card.css";
+
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+}
+
+/* Shared dark aurora background used across auth + dashboard surfaces */
+.app-aurora-bg {
+  background: #050505;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-aurora-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 45%),
+              radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.04), transparent 40%);
+  pointer-events: none;
+  opacity: 0.65;
+  z-index: 0;
+}
+
+.app-aurora-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Force aurora background when body has this class (used on auth routes) */
+body.aurora-page {
+  background: #050505;
+  background-attachment: fixed;
 }
 
 /* ===============================
@@ -54,28 +85,19 @@
 
 /* Animated gradient background */
 @keyframes gradient-shift {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-[data-bs-theme="light"] body {
-    background: linear-gradient(135deg, 
-        #f0f9ff 0%, 
-        #e0f2fe 15%, 
-        #dbeafe 30%, 
-        #fef3c7 45%, 
-        #fce7f3 60%, 
-        #e0e7ff 75%, 
-        #f0f9ff 100%);
-    background-size: 200% 200%;
-    animation: gradient-shift 20s ease infinite;
+/* Unified black aurora background for all themes */
+body,
+[data-bs-theme="light"] body,
+[data-bs-theme="dark"] body,
+[data-theme="dark"] body {
+  background: #050505;
+  background-attachment: fixed;
+  color: var(--text-primary);
 }
 
 .logo {
@@ -119,20 +141,7 @@
    ENHANCED DARK MODE STYLING
    =============================== */
 
-/* Dark Mode Animated gradient background */
-[data-bs-theme="dark"] body,
-[data-theme="dark"] body {
-    background: linear-gradient(135deg, 
-        #0f172a 0%, 
-        #1e293b 15%, 
-        #0f172a 30%, 
-        #1e3a5f 45%, 
-        #1e293b 60%, 
-        #2d1b4e 75%, 
-        #0f172a 100%);
-    background-size: 200% 200%;
-    animation: gradient-shift 20s ease infinite;
-}
+/* Keep dark cards readable on unified background */
 
 /* Colorful stat cards for dashboard - Dark Mode */
 [data-bs-theme="dark"] .stats-card-1,

@@ -223,8 +223,8 @@ const VolunteerDashboard = () => {
                 </div>
 
                 {/* Complaints List */}
-                <div className="card border-0 shadow">
-                    <div className="card-header bg-white">
+                <div className="card border-0 shadow assigned-complaints-card">
+                    <div className="card-header">
                         <h5 className="mb-0 fw-bold">Your Assigned Complaints</h5>
                     </div>
                     <div className="card-body">
@@ -311,10 +311,18 @@ const VolunteerDashboard = () => {
                 </div>
 
                 {/* Instructions Card */}
-                <div className="card border-0 shadow mt-4 bg-light">
+                <div
+                    className="card border-0 shadow mt-4"
+                    style={{
+                        background: 'linear-gradient(135deg, #0f172a 0%, #111827 100%)',
+                        color: '#e5e7eb',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        boxShadow: '0 12px 30px rgba(0,0,0,0.4)'
+                    }}
+                >
                     <div className="card-body">
-                        <h6 className="fw-bold mb-2">Instructions:</h6>
-                        <ul className="mb-0">
+                        <h6 className="fw-bold mb-2" style={{ color: '#f8fafc' }}>Instructions:</h6>
+                        <ul className="mb-0" style={{ color: '#d1d5db' }}>
                             <li>Use the status dropdown to update complaint progress: Pending → In Progress → Resolved</li>
                             <li>Dashboard statistics will update in real-time as you change complaint statuses</li>
                             <li>Contact citizens using the provided phone number or email for any clarifications</li>

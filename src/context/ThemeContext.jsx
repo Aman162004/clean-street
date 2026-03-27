@@ -4,9 +4,8 @@ import { colorSystem } from "../lib/colorSystem";
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-    const [theme, setTheme] = useState(() => {
-        return localStorage.getItem('bs-theme') || 'light';
-    });
+    // Force dark theme only; light mode disabled
+    const [theme, setTheme] = useState('dark');
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -17,7 +16,8 @@ export function ThemeProvider({ children }) {
     }, [theme]);
 
     const toggleTheme = () => {
-        setTheme((prev) => (prev === "light" ? "dark" : "light"));
+        // No-op toggle: lock to dark mode
+        setTheme('dark');
     };
 
     return (

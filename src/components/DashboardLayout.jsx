@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import {
     Menu,
-    Moon,
-    Sun,
     Home,
     FileText,
     Map as MapIcon,
@@ -18,6 +15,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import ChatWidget from './ChatWidget';
 import NewSidebar from './NewSidebar';
 import { api } from '../lib/api';
+import { BGPattern } from '@/components/ui/bg-pattern';
 
 /* ===================== SIDEBAR ===================== */
 const Sidebar = ({ isOpen, closeSidebar, onLogout }) => {
@@ -111,7 +109,6 @@ const Sidebar = ({ isOpen, closeSidebar, onLogout }) => {
 
 /* ===================== HEADER ===================== */
 const Header = ({ toggleSidebar, sidebarOpen }) => {
-    const { theme, toggleTheme } = useTheme();
     const location = useLocation();
 
     const getTitle = () => {
@@ -159,9 +156,6 @@ const Header = ({ toggleSidebar, sidebarOpen }) => {
                     </button>
                 )}
 
-                <button onClick={toggleTheme} className="btn text-body">
-                    {theme === 'light' ? <Moon /> : <Sun />}
-                </button>
             </div>
         </header>
     );
@@ -185,29 +179,49 @@ export default function DashboardLayout({ children, onLogout }) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-body">
-            <NewSidebar
-                isOpen={sidebarOpen}
-                toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                onLogout={onLogout}
-                user={user}
+        <div className="min-h-screen position-relative overflow-hidden app-aurora-bg">
+            <BGPattern
+                variant="grid"
+                mask="fade-edges"
+                fill="rgba(180, 180, 180, 0.08)"
+                size={32}
+                className="opacity-60"
+                style={{ ['--background']: '#050505' }}
             />
+            <BGPattern
+                variant="dots"
+                mask="fade-center"
+                fill="rgba(180, 180, 180, 0.06)"
+                size={26}
+                className="opacity-50 rotate-180"
+                style={{ ['--background']: '#050505' }}
+            />
+            <div className="position-absolute top-0 start-0 end-0" style={{ height: '240px', background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 45%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.06), transparent 40%)', pointerEvents: 'none' }} />
 
-            {/* ✅ PERFECT SPACING */}
-            <main
-                className="pt-3 px-4 transition-all"
-                style={{
-                    marginLeft: sidebarOpen ? '280px' : '80px',
-                    transition: 'margin-left 0.3s ease',
-                    paddingTop: '20px',
-                    minHeight: '100vh'
-                }}
-            >
-                {children}
-            </main>
+            <div className="position-relative" style={{ zIndex: 1 }}>
+                <NewSidebar
+                    isOpen={sidebarOpen}
+                    toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                    onLogout={onLogout}
+                    user={user}
+                />
 
-            {/* Chat Widget Fixed to Bottom Right */}
-            <ChatWidget />
+                {/* ✅ PERFECT SPACING */}
+                <main
+                    className="pt-3 px-4 transition-all"
+                    style={{
+                        marginLeft: sidebarOpen ? '280px' : '80px',
+                        transition: 'margin-left 0.3s ease',
+                        paddingTop: '20px',
+                        minHeight: '100vh'
+                    }}
+                >
+                    {children}
+                </main>
+
+                {/* Chat Widget Fixed to Bottom Right */}
+                <ChatWidget />
+            </div>
         </div>
     );
 }

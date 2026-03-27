@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import StatsSection from '../components/StatsSection';
+import { CardCanvas, Card } from '../components/ui/animated-glow-card';
 import { MapPin, Clock, User, AlertTriangle, CheckCircle, RefreshCw, Users, ThumbsUp, ThumbsDown, MessageCircle, Send } from 'lucide-react';
 import '../styles/Complaints.css';
 
@@ -11,6 +12,7 @@ function Complaints() {
     const location = useLocation();
     const [complaints, setComplaints] = React.useState([]);
     const [stats, setStats] = React.useState(null);
+    const [selectedDistrict, setSelectedDistrict] = React.useState('All Delhi');
     const [loading, setLoading] = React.useState(true);
     const [user, setUser] = React.useState(null);
     const [viewMode, setViewMode] = React.useState('all'); // 'all' or 'my'
@@ -20,7 +22,6 @@ function Complaints() {
     const [actionLoading, setActionLoading] = React.useState({});
     const isCitizen = String(user?.role || '').toLowerCase() === 'citizen';
 
-    // Check URL parameters for view mode
     React.useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const view = searchParams.get('view');
@@ -33,10 +34,7 @@ function Complaints() {
         const fetchPageData = async () => {
             try {
                 setLoading(true);
-                
-                // Determine which endpoint to call based on view mode
                 const complaintsEndpoint = viewMode === 'my' ? '/complaints/my-complaints' : '/complaints';
-                
                 const [complaintsRes, statsRes, profileRes] = await Promise.all([
                     api.get(complaintsEndpoint),
                     api.get('/complaints/stats'),
@@ -58,10 +56,8 @@ function Complaints() {
             }
         };
         fetchPageData();
-        
-        // Auto-refresh every 10 seconds to get latest updates
+
         const interval = setInterval(() => {
-            // Don't show loading spinner on background refresh
             const fetchWithoutLoading = async () => {
                 try {
                     const complaintsEndpoint = viewMode === 'my' ? '/complaints/my-complaints' : '/complaints';
@@ -82,7 +78,7 @@ function Complaints() {
             };
             fetchWithoutLoading();
         }, 10000);
-        
+
         return () => clearInterval(interval);
     }, [viewMode]);
 
@@ -103,7 +99,6 @@ function Complaints() {
 
     const handleVote = async (complaintId, voteType) => {
         if (!isCitizen) return;
-
         const loadingKey = `${complaintId}-${voteType}`;
         try {
             setActionLoading(prev => ({ ...prev, [loadingKey]: true }));
@@ -122,7 +117,6 @@ function Complaints() {
     const toggleComments = async (complaintId) => {
         const isOpen = !!openCommentBoxes[complaintId];
         setOpenCommentBoxes(prev => ({ ...prev, [complaintId]: !isOpen }));
-
         if (!isOpen) {
             try {
                 const response = await api.get(`/complaints/${complaintId}/comments`);
@@ -135,16 +129,13 @@ function Complaints() {
 
     const handleCommentSubmit = async (complaintId) => {
         if (!isCitizen) return;
-
         const content = (commentInputs[complaintId] || '').trim();
         if (!content) return;
-
         const loadingKey = `${complaintId}-comment`;
         try {
             setActionLoading(prev => ({ ...prev, [loadingKey]: true }));
             await api.post(`/complaints/${complaintId}/comments`, { comment: content });
             setCommentInputs(prev => ({ ...prev, [complaintId]: '' }));
-
             const [commentsResponse] = await Promise.all([
                 api.get(`/complaints/${complaintId}/comments`),
                 refreshComplaints()
@@ -176,8 +167,7 @@ function Complaints() {
             'medium': 'bg-info',
             'low': 'bg-success'
         };
-        return `badge ${priorityMap[p] || 'bg-info'} bg-opacity-
-        5 text-dark small fw-normal`;
+        return `badge ${priorityMap[p] || 'bg-info'} bg-opacity-5 text-dark small fw-normal`;
     };
 
     const getStatusIcon = (status) => {
@@ -201,6 +191,31 @@ function Complaints() {
             timeZone: 'Asia/Kolkata'
         });
     };
+
+    const districtOptions = React.useMemo(() => {
+        const opts = Array.from(new Set((complaints || []).map(c => c.district).filter(Boolean)));
+        opts.sort((a, b) => a.localeCompare(b));
+        return ['All Delhi', ...opts];
+    }, [complaints]);
+
+    const displayedComplaints = React.useMemo(() => {
+        if (selectedDistrict === 'All Delhi') return complaints;
+        return complaints.filter(c => (c.district || '').toLowerCase() === selectedDistrict.toLowerCase());
+    }, [complaints, selectedDistrict]);
+
+    const baseStats = stats || { total: 0, pending: 0, inProgress: 0, resolved: 0 };
+    const filteredStats = React.useMemo(() => {
+        return displayedComplaints.reduce((acc, c) => {
+            acc.total += 1;
+            const status = (c.status || 'pending').toLowerCase();
+            if (status.includes('progress')) acc.inProgress += 1;
+            else if (status.includes('resolved')) acc.resolved += 1;
+            else acc.pending += 1;
+            return acc;
+        }, { total: 0, pending: 0, inProgress: 0, resolved: 0 });
+    }, [displayedComplaints]);
+
+    const effectiveStats = selectedDistrict === 'All Delhi' ? baseStats : filteredStats;
 
     if (loading) {
         return (
@@ -246,7 +261,6 @@ function Complaints() {
                     </div>
                     
                     <div className="d-flex gap-2 flex-wrap">
-                        {/* View Mode Toggle */}
                         <div className="btn-group" role="group" aria-label="View Mode">
                             <button
                                 onClick={() => handleViewModeChange('all')}
@@ -268,22 +282,33 @@ function Complaints() {
                         >
                             <AlertTriangle size={18} className="me-2" />Report New Issue
                         </button>
+                        <div className="d-flex align-items-center gap-2">
+                            <label className="text-muted small mb-0">District</label>
+                            <select
+                                className="form-select form-select-sm"
+                                value={selectedDistrict}
+                                onChange={(e) => setSelectedDistrict(e.target.value)}
+                                style={{ minWidth: '170px' }}
+                            >
+                                {districtOptions.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                {/* Show stats only for all complaints view */}
-                {viewMode === 'all' && <StatsSection stats={stats} />}
+                {viewMode === 'all' && <StatsSection stats={effectiveStats} />}
 
-                {/* Complaints Count */}
                 <div className="mb-3">
                     <p className="text-muted mb-0">
-                        Showing {complaints.length} {viewMode === 'my' ? 'of your' : 'total'} complaint{complaints.length !== 1 ? 's' : ''}
+                        Showing {displayedComplaints.length} {viewMode === 'my' ? 'of your' : 'total'} complaint{displayedComplaints.length !== 1 ? 's' : ''}
+                        {selectedDistrict !== 'All Delhi' && ` in ${selectedDistrict}`}
                     </p>
                 </div>
 
-                {/* Complaints Grid */}
                 <div className="row g-4">
-                    {complaints.length === 0 ? (
+                    {displayedComplaints.length === 0 ? (
                         <div className="col-12">
                             <div className="text-center py-5">
                                 <AlertTriangle size={64} className="text-muted mb-3" />
@@ -305,220 +330,207 @@ function Complaints() {
                             </div>
                         </div>
                     ) : (
-                        complaints.map((complaint, index) => (
+                        displayedComplaints.map((complaint, index) => (
                             <div key={complaint.id} className="col-12 col-lg-6">
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="card border-0 shadow-sm rounded-3 h-100 hover-shadow-lg"
-                                    style={{ 
-                                        background: 'var(--bg-card)',
-                                        transition: 'all 0.3s ease',
-                                        cursor: 'pointer'
-                                    }}
                                 >
-                                    <div className="card-body p-4">
-                                        <div className="d-flex justify-content-between align-items-start mb-3">
-                                            <div className="d-flex align-items-center gap-2">
-                                                <span className="badge bg-primary bg-opacity-10 text-primary fs-6">
-                                                    #{complaint.id}
-                                                </span>
-                                                <span className={getPriorityBadge(complaint.priority)}>
-                                                    {complaint.priority || 'Medium'}
-                                                </span>
-                                            </div>
-                                            <div className="d-flex align-items-center gap-2">
-                                                {getStatusIcon(complaint.status)}
-                                                <span className={getStatusBadge(complaint.status)}>
-                                                    {complaint.status || 'Pending'}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <h5 className="fw-bold mb-2 text-truncate">{complaint.title}</h5>
-                                        
-                                        <div className="d-flex align-items-center gap-2 mb-2 text-muted">
-                                            <span className="badge bg-secondary bg-opacity-10 text-secondary small">
-                                                {complaint.type || 'Other'}
-                                            </span>
-                                            <span>•</span>
-                                            <Clock size={14} />
-                                            <span className="small">{formatDate(complaint.created_at)}</span>
-                                        </div>
-
-                                        {/* Show Reporter Info (only in all complaints view) */}
-                                        {viewMode === 'all' && (
-                                            <div className="d-flex align-items-center gap-2 mb-2 text-muted">
-                                                <User size={14} />
-                                                <span className="small">
-                                                    Reported by: {complaint.user_name || 'Unknown'}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Show Volunteer Assignment */}
-                                        {complaint.volunteer_name && (
-                                            <div className="d-flex align-items-center gap-2 mb-2 text-muted">
-                                                <User size={14} />
-                                                <span className="small">
-                                                    Assigned to: {complaint.volunteer_name}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        <div className="d-flex align-items-start gap-2 mb-3">
-                                            <MapPin size={14} className="text-muted mt-1 flex-shrink-0" />
-                                            <div className="small text-muted">
-                                                <div>{complaint.address}</div>
-                                                {complaint.landmark && (
-                                                    <div className="text-muted">Near: {complaint.landmark}</div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {complaint.description && (
-                                            <div style={{
-                                                background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(167, 139, 250, 0.2) 100%)',
-                                                padding: '0.875rem 1rem',
-                                                borderRadius: '12px',
-                                                border: '2px solid rgba(96, 165, 250, 0.4)',
-                                                marginBottom: '1rem',
-                                                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)'
-                                            }}>
-                                                <p className="text-muted small mb-0" style={{ 
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                    lineHeight: '1.6',
-                                                    color: '#dc2626',
-                                                    fontWeight: '500'
-                                                }}>
-                                                    {complaint.description}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* Display complaint image if available */}
-                                        {complaint.photo && complaint.photo.trim() !== '' && (
-                                            <div className="mb-3">
-                                                <img
-                                                    src={complaint.photo}
-                                                    alt="Complaint evidence"
-                                                    className="img-fluid rounded-3 shadow-sm"
-                                                    style={{
-                                                        maxHeight: '300px',
-                                                        width: '100%',
-                                                        objectFit: 'cover',
-                                                        border: '2px solid rgba(96, 165, 250, 0.3)',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    onClick={() => window.open(complaint.photo, '_blank')}
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                        console.error('Failed to load complaint image:', complaint.photo);
-                                                    }}
-                                                />
-                                                <p className="text-muted small mt-2 mb-0">
-                                                    <i>Click image to view full size</i>
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {viewMode === 'all' && (
-                                            <div className="mb-3">
-                                                <div className="d-flex flex-wrap gap-2 mb-2">
-                                                    <button
-                                                        onClick={() => handleVote(complaint.id, 'up')}
-                                                        disabled={!isCitizen || !!actionLoading[`${complaint.id}-up`]}
-                                                        className={`btn btn-sm ${complaint.user_vote === 'up' ? 'btn-success' : 'btn-outline-success'} rounded-pill`}
-                                                    >
-                                                        <ThumbsUp size={14} className="me-1" />
-                                                        UpVote ({Number(complaint.upvotes || 0)})
-                                                    </button>
-
-                                                    <button
-                                                        onClick={() => handleVote(complaint.id, 'down')}
-                                                        disabled={!isCitizen || !!actionLoading[`${complaint.id}-down`]}
-                                                        className={`btn btn-sm ${complaint.user_vote === 'down' ? 'btn-danger' : 'btn-outline-danger'} rounded-pill`}
-                                                    >
-                                                        <ThumbsDown size={14} className="me-1" />
-                                                        DownVote ({Number(complaint.downvotes || 0)})
-                                                    </button>
-
-                                                    <button
-                                                        onClick={() => toggleComments(complaint.id)}
-                                                        className="btn btn-sm btn-outline-secondary rounded-pill"
-                                                    >
-                                                        <MessageCircle size={14} className="me-1" />
-                                                        Comments ({Number(complaint.comment_count || 0)})
-                                                    </button>
+                                    <CardCanvas className="w-100 h-100">
+                                        <Card className="h-100 glow-complaint-card">
+                                            <div className="glow-card-body">
+                                                <div className="d-flex justify-content-between align-items-start mb-3">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <span className="badge bg-primary bg-opacity-10 text-primary fs-6">
+                                                            #{complaint.id}
+                                                        </span>
+                                                        <span className={getPriorityBadge(complaint.priority)}>
+                                                            {complaint.priority || 'Medium'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        {getStatusIcon(complaint.status)}
+                                                        <span className={getStatusBadge(complaint.status)}>
+                                                            {complaint.status || 'Pending'}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
-                                                {openCommentBoxes[complaint.id] && (
-                                                    <div className="border rounded-3 p-3 bg-light">
-                                                        {isCitizen && (
-                                                            <div className="mb-3">
-                                                                <textarea
-                                                                    className="form-control form-control-sm"
-                                                                    rows={2}
-                                                                    placeholder="Write your comment..."
-                                                                    value={commentInputs[complaint.id] || ''}
-                                                                    onChange={(e) => setCommentInputs(prev => ({
-                                                                        ...prev,
-                                                                        [complaint.id]: e.target.value
-                                                                    }))}
-                                                                />
-                                                                <button
-                                                                    onClick={() => handleCommentSubmit(complaint.id)}
-                                                                    disabled={!!actionLoading[`${complaint.id}-comment`]}
-                                                                    className="btn btn-sm btn-primary rounded-pill mt-2"
-                                                                >
-                                                                    <Send size={13} className="me-1" />Add Comment
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                <h5 className="fw-bold mb-2 text-truncate text-white">{complaint.title}</h5>
+                                                
+                                                <div className="d-flex align-items-center gap-2 mb-2 text-muted">
+                                                    <span className="badge bg-secondary bg-opacity-10 text-secondary small">
+                                                        {complaint.type || 'Other'}
+                                                    </span>
+                                                    <span>•</span>
+                                                    <Clock size={14} />
+                                                    <span className="small">{formatDate(complaint.created_at)}</span>
+                                                </div>
 
-                                                        {(commentsByComplaint[complaint.id] || []).length === 0 ? (
-                                                            <p className="small text-muted mb-0">No comments yet.</p>
-                                                        ) : (
-                                                            <div className="d-flex flex-column gap-2">
-                                                                {(commentsByComplaint[complaint.id] || []).map(comment => (
-                                                                    <div key={comment.id} className="bg-white border rounded-3 p-2">
-                                                                        <div className="small fw-semibold text-dark">
-                                                                            {comment.user_name || 'Citizen'}
-                                                                        </div>
-                                                                        <div className="small text-muted">{comment.comment}</div>
-                                                                        <div className="small text-muted mt-1">
-                                                                            {formatDate(comment.created_at)}
-                                                                        </div>
+                                                {viewMode === 'all' && (
+                                                    <div className="d-flex align-items-center gap-2 mb-2 text-muted">
+                                                        <User size={14} />
+                                                        <span className="small">
+                                                            Reported by: {complaint.user_name || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {complaint.volunteer_name && (
+                                                    <div className="d-flex align-items-center gap-2 mb-2 text-muted">
+                                                        <User size={14} />
+                                                        <span className="small">
+                                                            Assigned to: {complaint.volunteer_name}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="d-flex align-items-start gap-2 mb-3">
+                                                    <MapPin size={14} className="text-muted mt-1 flex-shrink-0" />
+                                                    <div className="small text-muted">
+                                                        <div>{complaint.address}</div>
+                                                        {complaint.landmark && (
+                                                            <div className="text-muted">Near: {complaint.landmark}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {complaint.description && (
+                                                    <div className="glow-description">
+                                                        <p className="text-muted small mb-0" style={{ 
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: 'vertical',
+                                                            overflow: 'hidden',
+                                                            lineHeight: '1.6',
+                                                            color: '#dc2626',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            {complaint.description}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {complaint.photo && complaint.photo.trim() !== '' && (
+                                                    <div className="mb-3">
+                                                        <img
+                                                            src={complaint.photo}
+                                                            alt="Complaint evidence"
+                                                            className="img-fluid rounded-3 shadow-sm"
+                                                            style={{
+                                                                maxHeight: '300px',
+                                                                width: '100%',
+                                                                objectFit: 'cover',
+                                                                border: '2px solid rgba(96, 165, 250, 0.3)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            onClick={() => window.open(complaint.photo, '_blank')}
+                                                            onError={(e) => {
+                                                                e.target.style.display = 'none';
+                                                                console.error('Failed to load complaint image:', complaint.photo);
+                                                            }}
+                                                        />
+                                                        <p className="text-muted small mt-2 mb-0">
+                                                            <i>Click image to view full size</i>
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {viewMode === 'all' && (
+                                                    <div className="mb-3">
+                                                        <div className="d-flex flex-wrap gap-2 mb-2">
+                                                            <button
+                                                                onClick={() => handleVote(complaint.id, 'up')}
+                                                                disabled={!isCitizen || !!actionLoading[`${complaint.id}-up`]}
+                                                                className={`btn btn-sm ${complaint.user_vote === 'up' ? 'btn-success' : 'btn-outline-success'} rounded-pill`}
+                                                            >
+                                                                <ThumbsUp size={14} className="me-1" />
+                                                                UpVote ({Number(complaint.upvotes || 0)})
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => handleVote(complaint.id, 'down')}
+                                                                disabled={!isCitizen || !!actionLoading[`${complaint.id}-down`]}
+                                                                className={`btn btn-sm ${complaint.user_vote === 'down' ? 'btn-danger' : 'btn-outline-danger'} rounded-pill`}
+                                                            >
+                                                                <ThumbsDown size={14} className="me-1" />
+                                                                DownVote ({Number(complaint.downvotes || 0)})
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => toggleComments(complaint.id)}
+                                                                className="btn btn-sm btn-outline-secondary rounded-pill"
+                                                            >
+                                                                <MessageCircle size={14} className="me-1" />
+                                                                Comments ({Number(complaint.comment_count || 0)})
+                                                            </button>
+                                                        </div>
+
+                                                        {openCommentBoxes[complaint.id] && (
+                                                            <div className="border rounded-3 p-3 bg-light">
+                                                                {isCitizen && (
+                                                                    <div className="mb-3">
+                                                                        <textarea
+                                                                            className="form-control form-control-sm"
+                                                                            rows={2}
+                                                                            placeholder="Write your comment..."
+                                                                            value={commentInputs[complaint.id] || ''}
+                                                                            onChange={(e) => setCommentInputs(prev => ({
+                                                                                ...prev,
+                                                                                [complaint.id]: e.target.value
+                                                                            }))}
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => handleCommentSubmit(complaint.id)}
+                                                                            disabled={!!actionLoading[`${complaint.id}-comment`]}
+                                                                            className="btn btn-sm btn-primary rounded-pill mt-2"
+                                                                        >
+                                                                            <Send size={13} className="me-1" />Add Comment
+                                                                        </button>
                                                                     </div>
-                                                                ))}
+                                                                )}
+
+                                                                {(commentsByComplaint[complaint.id] || []).length === 0 ? (
+                                                                    <p className="small text-muted mb-0">No comments yet.</p>
+                                                                ) : (
+                                                                    <div className="d-flex flex-column gap-2">
+                                                                        {(commentsByComplaint[complaint.id] || []).map(comment => (
+                                                                            <div key={comment.id} className="bg-white border rounded-3 p-2">
+                                                                                <div className="small fw-semibold text-dark">
+                                                                                    {comment.user_name || 'Citizen'}
+                                                                                </div>
+                                                                                <div className="small text-muted">{comment.comment}</div>
+                                                                                <div className="small text-muted mt-1">
+                                                                                    {formatDate(comment.created_at)}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
                                                 )}
-                                            </div>
-                                        )}
 
-                                        {/* Show location on map button */}
-                                        {complaint.latitude && complaint.longitude && (
-                                            <button 
-                                                onClick={() => navigate('/map', { 
-                                                    state: { 
-                                                        focusLat: complaint.latitude, 
-                                                        focusLng: complaint.longitude,
-                                                        complaintId: complaint.id 
-                                                    } 
-                                                })}
-                                                className="btn btn-outline-primary btn-sm rounded-pill"
-                                            >
-                                                <MapPin size={14} className="me-1" />
-                                                View on Map
-                                            </button>
-                                        )}
-                                    </div>
+                                                {complaint.latitude && complaint.longitude && (
+                                                    <button 
+                                                        onClick={() => navigate('/map', { 
+                                                            state: { 
+                                                                focusLat: complaint.latitude, 
+                                                                focusLng: complaint.longitude,
+                                                                complaintId: complaint.id 
+                                                            } 
+                                                        })}
+                                                        className="btn btn-outline-primary btn-sm rounded-pill"
+                                                    >
+                                                        <MapPin size={14} className="me-1" />
+                                                        View on Map
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    </CardCanvas>
                                 </motion.div>
                             </div>
                         ))
