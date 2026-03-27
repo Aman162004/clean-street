@@ -48,9 +48,9 @@ const HalideLanding: React.FC = () => {
     <>
       <style>{`
         :root {
-          --bg: #0a0a0a;
-          --silver: #e0e0e0;
-          --accent: #ff3c00;
+          --bg: #0a1f3e;
+          --silver: #ffffff;
+          --accent: #ff9933;
           --grain-opacity: 0.15;
         }
 
@@ -64,11 +64,12 @@ const HalideLanding: React.FC = () => {
           margin: 0;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
+          position: relative;
         }
 
         .halide-grain {
-          position: fixed;
+          position: absolute;
           top: 0; left: 0; width: 100%; height: 100%;
           pointer-events: none;
           z-index: 100;
@@ -78,30 +79,36 @@ const HalideLanding: React.FC = () => {
         .viewport {
           perspective: 2000px;
           width: 100vw; height: 100vh;
-          display: flex; align-items: center; justify-content: center;
+          display: flex; align-items: center; justify-content: flex-end;
+          padding-right: min(8vw, 140px);
           overflow: hidden;
+          pointer-events: none;
         }
 
         .canvas-3d {
           position: relative;
-          width: 800px; height: 500px;
+          width: 1000px; height: 650px;
+          max-width: 58vw;
+          max-height: 70vh;
           transform-style: preserve-3d;
           transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+          pointer-events: auto;
         }
 
         .layer {
           position: absolute;
           inset: 0;
           border: 1px solid rgba(224, 224, 224, 0.1);
-          background-size: cover;
+          background-size: contain;
+          background-repeat: no-repeat;
           background-position: center;
           transition: transform 0.5s ease;
         }
 
-        .layer-1 { background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1200'); filter: grayscale(1) contrast(1.2) brightness(0.5); }
-        .layer-2 { background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1200'); filter: grayscale(1) contrast(1.1) brightness(0.7); opacity: 0.6; mix-blend-mode: screen; }
-        .layer-3 { background-image: url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=1200'); filter: grayscale(1) contrast(1.3) brightness(0.8); opacity: 0.4; mix-blend-mode: overlay; }
-
+        .layer-1 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.15) brightness(0.65) sepia(0.25); }
+        .layer-2 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.1) brightness(0.7); opacity: 0.6; mix-blend-mode: screen; }
+        .layer-3 { background-image: url('/Delhi map.png?v=2'); filter: grayscale(1) contrast(1.25) brightness(0.75); opacity: 0.4; mix-blend-mode: overlay; }
+        
         .contours {
           position: absolute;
           width: 200%; height: 200%;
@@ -112,12 +119,13 @@ const HalideLanding: React.FC = () => {
         }
 
         .interface-grid {
-          position: fixed;
+          position: absolute;
           inset: 0;
-          padding: 4rem;
+          padding: 4rem 4rem 4rem clamp(3rem, 8vw, 6rem);
           display: grid;
           grid-template-columns: 1fr 1fr;
-          grid-template-rows: auto 1fr auto;
+          grid-template-rows: auto auto 1fr auto;
+          row-gap: 1rem;
           z-index: 10;
           pointer-events: none;
         }
@@ -129,6 +137,37 @@ const HalideLanding: React.FC = () => {
           line-height: 0.85;
           letter-spacing: -0.04em;
           mix-blend-mode: difference;
+        }
+
+        .hero-subcopy {
+          grid-column: 1 / -1;
+          max-width: 48rem;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          font-size: clamp(1rem, 2vw, 1.35rem);
+          line-height: 1.6;
+          color: rgba(255,255,255,0.8);
+          letter-spacing: -0.01em;
+        }
+
+        .stats-row {
+          grid-column: 1 / -1;
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .stat-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.65rem 1rem;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 999px;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          font-size: 0.95rem;
+          color: #fff;
+          backdrop-filter: blur(6px);
         }
 
         .cta-button {
@@ -173,20 +212,33 @@ const HalideLanding: React.FC = () => {
         <div className="halide-grain" style={{ filter: 'url(#grain)' }}></div>
 
         <div className="interface-grid">
-          <div style={{ fontWeight: 700 }}>HALIDE_CORE</div>
+          <div style={{ fontWeight: 700 }}>CLEAN_STREET</div>
           <div style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--accent)', fontSize: '0.7rem' }}>
-            <div>LATITUDE: 34.0522° N</div>
-            <div>FOCAL DEPTH: 80MM</div>
+            <div>LATITUDE: 28.7041° N</div>
+            <div>LONGITUDE: 77.1025° E</div>
           </div>
 
-          <h1 className="hero-title">SILVER<br />SULPHIDE</h1>
+          <h1 className="hero-title">CLEAN<br />DELHI</h1>
 
-          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-              <p>[ ARCHIVE 2024 ]</p>
-              <p>SURFACE TENSION & TOPOGRAPHICAL LIGHT</p>
+          <div className="hero-subcopy">
+            A city-wide cleanliness drive powered by real-time issue reporting, volunteer action, and transparent follow-through. Map every pothole, overflow, and dark spot—and watch teams resolve them faster.
+          </div>
+
+          <div className="stats-row">
+            <div className="stat-pill">⚡ 24/7 reporting</div>
+            <div className="stat-pill">🛰️ Map-first workflows</div>
+            <div className="stat-pill">🤝 Citizens · Volunteers · Admins</div>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
+              <p style={{ margin: 0 }}>[ INITIATIVE 2024 ]</p>
+              <p style={{ margin: 0 }}>CIVIC ENGAGEMENT · URBAN MAPPING · LIGHTING & WASTE</p>
             </div>
-            <a href="#" className="cta-button">EXPLORE DEPTH</a>
+            <div style={{ display: 'flex', gap: '0.75rem', pointerEvents: 'auto' }}>
+              <a href="#report" className="cta-button">REPORT AN ISSUE</a>
+              <a href="#" className="cta-button" style={{ background: 'transparent', color: 'var(--silver)', border: '1px solid rgba(255,255,255,0.25)' }}>VIEW LIVE FEED</a>
+            </div>
           </div>
         </div>
 

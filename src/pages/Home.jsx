@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Camera, BarChart3, Users } from 'lucide-react';
+import HalideLanding from '../components/ui/halide-topo-hero';
 
 const Home = () => {
     const [email, setEmail] = useState('');
@@ -72,7 +73,13 @@ const Home = () => {
     };
 
     return (
-        <div className="overflow-hidden home-page">
+        <>
+            {/* Immersive Delhi map hero */}
+            <section className="position-relative" style={{ minHeight: '100vh', backgroundColor: '#0a1f3e' }}>
+                <HalideLanding />
+            </section>
+
+            <div className="overflow-hidden home-page">
             <section
                 className="home-hero-fold border-bottom px-3 px-md-4"
                 style={{
@@ -717,6 +724,7 @@ const Home = () => {
             </section>
 
         </div>
+        </>
     );
 };
 
