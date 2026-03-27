@@ -499,6 +499,7 @@ const resolveComplaint = async (req, res) => {
 
         // Verify with Gemini
         let isResolved = false;
+        let aiRejectionReason = 'The photo provided does not clearly show the issue is resolved, or is irrelevant. Please provide a clear, valid proof photo.';
         try {
             const apiKey = process.env.GEMINI_API_KEY;
             if (apiKey && apiKey !== 'your_gemini_api_key_here') {
@@ -531,7 +532,16 @@ Description: ${complaint.description}\n`;
                     }
                 }
 
-                promptText += `\n\nThe LAST image below (or the only image) is the "AFTER" photo provided by the volunteer as proof that the issue is now resolved/cleaned up.\nLook closely at ALL photos. Does the AFTER photo clearly show that the issue described (and shown in the BEFORE photo, if any) has been resolved or addressed appropriately?\nReturn EXACTLY "YES" if it is resolved, or exactly "NO" if the photo is blurry, irrelevant, or shows the issue is still present.`;
+                promptText += `\n\nThe LAST image below (or the only image) is the "AFTER" photo provided by the volunteer as proof that the issue is now resolved/cleaned up.
+You MUST be an extremely STRICT inspector. Look closely at ALL photos.
+If the AFTER photo shows the problem STILL EXISTS (e.g., an unfixed pothole, garbage still on the road, water still leaking), you MUST reject it!
+Only approve if the AFTER photo clearly demonstrates the issue is definitively fixed.
+
+You must reply with a valid JSON object strictly matching this format:
+{
+  "is_resolved": boolean,
+  "reason": "A short, 1-2 sentence explanation of why it is approved or rejected."
+}`;
 
                 promptParts.push({ text: promptText });
 
@@ -543,12 +553,21 @@ Description: ${complaint.description}\n`;
                 });
 
                 const result = await model.generateContent(promptParts);
-                const text = result.response.text().trim().toUpperCase();
+                const text = result.response.text().trim();
                 
-                if (text.includes('YES')) {
+                let parsed = null;
+                try {
+                    const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    parsed = JSON.parse(cleanJson);
+                } catch (e) {
+                    console.error('Failed to parse Gemini JSON:', text);
+                }
+                
+                if (parsed && parsed.is_resolved === true) {
                     isResolved = true;
                 } else {
-                    console.log('Gemini rejected resolution. Response:', text);
+                    aiRejectionReason = parsed?.reason || aiRejectionReason;
+                    console.log('Gemini rejected resolution. Reason:', aiRejectionReason);
                 }
             } else {
                 // If API key is missing, skip AI check and allow
@@ -563,7 +582,7 @@ Description: ${complaint.description}\n`;
         if (!isResolved) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'AI Verification Failed: The photo provided does not clearly show the issue is resolved, or is irrelevant. Please provide a clear, valid proof photo.' 
+                message: `AI Verification Failed: ${aiRejectionReason}` 
             });
         }
 
