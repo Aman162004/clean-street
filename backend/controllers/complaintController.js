@@ -79,6 +79,7 @@ const createComplaint = async (req, res) => {
         }
 
         let assignedDepartment = 'Other';
+        let assignedVolunteerId = null;
         let complaintStatus = 'Pending';
 
         try {
@@ -131,11 +132,20 @@ Description: ${description}`;
             });
         }
 
+        if (assignedDepartment !== 'Other' && complaintDistrict) {
+            const volunteers = await User.findVolunteersByDepartmentAndDistrict(assignedDepartment, complaintDistrict);
+            if (volunteers && volunteers.length > 0) {
+                const randomVolunteer = volunteers[Math.floor(Math.random() * volunteers.length)];
+                assignedVolunteerId = randomVolunteer.id;
+                complaintStatus = 'In Progress';
+            }
+        }
+
         const complaint = await Complaint.create({
             user_id,
             title,
             department: assignedDepartment,
-            assigned_to: null,
+            assigned_to: assignedVolunteerId,
             status: complaintStatus,
             type,
             priority,

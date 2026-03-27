@@ -92,7 +92,11 @@ const User = {
 
     async findVolunteersByDepartmentAndDistrict(department, district) {
         if (!department || !district) return [];
-        const users = await UserModel.find({ role: 'volunteer', department, district });
+        const users = await UserModel.find({ 
+            role: 'volunteer', 
+            department: new RegExp(`^${department}$`, 'i'), 
+            district: new RegExp(`^${district}$`, 'i') 
+        });
         return users.map(toUserObject);
     }
 };
