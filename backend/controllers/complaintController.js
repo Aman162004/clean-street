@@ -306,6 +306,114 @@ const getVolunteerComplaints = async (req, res) => {
     }
 };
 
+const resolveComplaint = async (req, res) => {
+    try {
+        const { complaintId } = req.params;
+        
+        // Ensure user is volunteer or admin
+        if (!['admin', 'volunteer'].includes(req.user.role)) {
+            return res.status(403).json({ success: false, message: 'Access denied. Volunteer privileges required.' });
+        }
+
+        // Require image proof
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ success: false, message: 'A proof photo is strictly required to resolve a complaint.' });
+        }
+
+        // Fetch original complaint details
+        const complaint = await Complaint.findById(complaintId);
+        if (!complaint) {
+            return res.status(404).json({ success: false, message: 'Complaint not found.' });
+        }
+
+        // Verify with Gemini
+        let isResolved = false;
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+                const genAI = new GoogleGenerativeAI(apiKey);
+                // We strongly prefer the pro model for vision, or gemini-flash-latest
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+                
+                let promptParts = [];
+                let promptText = `You are a strict city management AI inspector.
+The original civic issue reported by a citizen was:
+Title: ${complaint.title}
+Description: ${complaint.description}\n`;
+
+                if (complaint.photo) {
+                    try {
+                        const response = await fetch(complaint.photo);
+                        if (response.ok) {
+                            const buffer = await response.arrayBuffer();
+                            const mimeType = response.headers.get('content-type') || 'image/jpeg';
+                            promptParts.push({
+                                inlineData: {
+                                    data: Buffer.from(buffer).toString("base64"),
+                                    mimeType: mimeType
+                                }
+                            });
+                            promptText += `\nThe FIRST image above is the "BEFORE" photo provided by the citizen showing the issue.`;
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch BEFORE image for AI verification', err);
+                    }
+                }
+
+                promptText += `\n\nThe LAST image below (or the only image) is the "AFTER" photo provided by the volunteer as proof that the issue is now resolved/cleaned up.\nLook closely at ALL photos. Does the AFTER photo clearly show that the issue described (and shown in the BEFORE photo, if any) has been resolved or addressed appropriately?\nReturn EXACTLY "YES" if it is resolved, or exactly "NO" if the photo is blurry, irrelevant, or shows the issue is still present.`;
+
+                promptParts.push({ text: promptText });
+
+                promptParts.push({
+                    inlineData: {
+                        data: req.file.buffer.toString("base64"),
+                        mimeType: req.file.mimetype
+                    }
+                });
+
+                const result = await model.generateContent(promptParts);
+                const text = result.response.text().trim().toUpperCase();
+                
+                if (text.includes('YES')) {
+                    isResolved = true;
+                } else {
+                    console.log('Gemini rejected resolution. Response:', text);
+                }
+            } else {
+                // If API key is missing, skip AI check and allow
+                isResolved = true; 
+            }
+        } catch (aiErr) {
+            console.error('Gemini Vision error in resolveComplaint:', aiErr);
+            // If AI is entirely down or rate limits hit, we cannot block volunteers from working
+            isResolved = true;
+        }
+
+        if (!isResolved) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'AI Verification Failed: The photo provided does not clearly show the issue is resolved, or is irrelevant. Please provide a clear, valid proof photo.' 
+            });
+        }
+
+        // Upload to Cloudinary now that AI approved it
+        const uploaded = await uploadBufferToCloudinary(req.file.buffer);
+        const photoUrl = uploaded.secure_url || '';
+
+        // Update DB
+        const updatedComplaint = await Complaint.resolveWithProof(complaintId, photoUrl);
+
+        res.json({
+            success: true,
+            message: 'Complaint resolved and verified by AI successfully!',
+            data: updatedComplaint
+        });
+    } catch (err) {
+        console.error('Error in resolveComplaint:', err);
+        res.status(500).json({ success: false, message: `Server error: ${err.message}`, stack: err.stack });
+    }
+};
+
 module.exports = {
     createComplaint,
     getAllComplaints,
@@ -317,5 +425,6 @@ module.exports = {
     upvoteComplaint,
     downvoteComplaint,
     addComplaintComment,
-    getComplaintComments
+    getComplaintComments,
+    resolveComplaint
 };

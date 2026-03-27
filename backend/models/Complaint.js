@@ -36,6 +36,7 @@ const ComplaintSchema = new mongoose.Schema(
         longitude: { type: Number, default: null },
         status: { type: String, default: 'Pending' },
         photo: { type: String, default: '' },
+        proof_photo: { type: String, default: '' },
         assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
         votes: { type: [VoteSchema], default: [] },
         comments: { type: [CommentSchema], default: [] }
@@ -78,6 +79,7 @@ const toComplaintPayload = (doc, currentUserId = null) => {
         department: complaint.department,
         volunteer_name: complaint.assigned_to?.name,
         volunteer_email: complaint.assigned_to?.email,
+        proof_photo: complaint.proof_photo,
         upvotes,
         downvotes,
         comment_count: (complaint.comments || []).length,
@@ -98,7 +100,8 @@ const Complaint = {
             description,
             latitude,
             longitude,
-            photo: photo || ''
+            photo: photo || '',
+            proof_photo: ''
         };
         if (assigned_to !== undefined && assigned_to !== null) {
             payload.assigned_to = toObjectId(assigned_to);
@@ -114,6 +117,12 @@ const Complaint = {
     async findAll() {
         const complaints = await ComplaintModel.find({}).sort({ created_at: -1 });
         return complaints.map(c => toComplaintPayload(c)).sort(sortComplaints);
+    },
+
+    async findById(complaintId) {
+        if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
+        const complaint = await ComplaintModel.findById(complaintId);
+        return complaint ? toComplaintPayload(complaint) : null;
     },
 
     async getStats() {
@@ -150,6 +159,16 @@ const Complaint = {
     async updateStatus(complaintId, status) {
         if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
         const updated = await ComplaintModel.findByIdAndUpdate(complaintId, { status }, { new: true });
+        return updated ? toComplaintPayload(updated) : null;
+    },
+
+    async resolveWithProof(complaintId, proofPhotoUrl) {
+        if (!mongoose.Types.ObjectId.isValid(complaintId)) return null;
+        const updated = await ComplaintModel.findByIdAndUpdate(
+            complaintId, 
+            { status: 'Resolved', proof_photo: proofPhotoUrl }, 
+            { new: true }
+        );
         return updated ? toComplaintPayload(updated) : null;
     },
 

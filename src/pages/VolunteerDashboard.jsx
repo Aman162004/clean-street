@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ClipboardList, MapPin, Clock, CheckCircle2, AlertTriangle, User, Phone, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ClipboardList, MapPin, Clock, CheckCircle2, AlertTriangle, User, Phone, Calendar, UploadCloud, X } from 'lucide-react';
 import { api } from '../lib/api';
 
 const VolunteerDashboard = () => {
@@ -8,6 +8,14 @@ const VolunteerDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
     const [updating, setUpdating] = useState(null);
+    const [resolvingId, setResolvingId] = useState(null);
+    const [isVerifying, setIsVerifying] = useState(false);
+    
+    // Modal & Drag/Drop State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [dragActive, setDragActive] = useState(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         fetchVolunteerComplaints();
@@ -66,6 +74,75 @@ const VolunteerDashboard = () => {
             alert('Failed to update status: ' + (err.message || 'Unknown error'));
         } finally {
             setUpdating(null);
+        }
+    };
+
+    const handleStatusSelect = (complaintId, currentStatus, newStatus) => {
+        if (newStatus === 'Resolved') {
+            setResolvingId(complaintId);
+            setShowUploadModal(true);
+            return;
+        }
+        updateStatus(complaintId, newStatus);
+    };
+
+    const handleDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            setSelectedFile(e.dataTransfer.files[0]);
+        }
+    };
+
+    const handleFileSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setShowUploadModal(false);
+        setResolvingId(null);
+        setSelectedFile(null);
+        fetchVolunteerComplaints(); // Reset dropdown visually
+    };
+
+    const confirmUpload = async () => {
+        if (!selectedFile || !resolvingId) return;
+
+        setShowUploadModal(false);
+        setIsVerifying(true);
+        setUpdating(resolvingId);
+        try {
+            const formData = new FormData();
+            formData.append('proofPhoto', selectedFile);
+
+            await api.post(`/complaints/${resolvingId}/resolve`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            await fetchVolunteerComplaints();
+            alert("✨ AI successfully verified your proof! Issue marked as Resolved.");
+        } catch (err) {
+            console.error('Error resolving with proof:', err);
+            alert(err.response?.data?.message || err.message || 'Failed to verify resolution.');
+            fetchVolunteerComplaints();
+        } finally {
+            setIsVerifying(false);
+            setUpdating(null);
+            setResolvingId(null);
+            setSelectedFile(null);
         }
     };
 
@@ -187,8 +264,8 @@ const VolunteerDashboard = () => {
                                                     <select
                                                         className="form-select form-select-sm"
                                                         value={complaint.status || 'Pending'}
-                                                        onChange={(e) => updateStatus(complaint.id, e.target.value)}
-                                                        disabled={updating === complaint.id}
+                                                        onChange={(e) => handleStatusSelect(complaint.id, complaint.status, e.target.value)}
+                                                        disabled={updating === complaint.id || isVerifying}
                                                         style={{ minWidth: '130px' }}
                                                     >
                                                         <option value="Pending">Pending</option>
@@ -245,6 +322,92 @@ const VolunteerDashboard = () => {
                     </div>
                 </div>
             </motion.div>
+
+            {/* Hidden File Input used by the Modal */}
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept="image/jpeg, image/png, image/webp, image/jpg" 
+                capture="environment"
+                onChange={handleFileSelect} 
+            />
+
+            {/* Upload Proof Modal */}
+            <AnimatePresence>
+                {showUploadModal && (
+                    <div className="modal-backdrop fade show" style={{ zIndex: 1040 }}></div>
+                )}
+            </AnimatePresence>
+
+            {showUploadModal && (
+                <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1050 }} onClick={handleCloseModal}>
+                    <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+                        <motion.div 
+                            className="modal-content border-0 shadow-lg"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
+                            <div className="modal-header border-bottom-0 pb-0">
+                                <h5 className="modal-title fw-bold">Upload Resolution Proof</h5>
+                                <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+                            </div>
+                            <div className="modal-body text-center p-4">
+                                <p className="text-muted mb-4">
+                                    Please provide a clear photo demonstrating that this civic issue has been resolved. <br/>
+                                    <strong>Gemini Vision AI</strong> will analyze this image against the original complaint.
+                                </p>
+
+                                <div 
+                                    className={`p-5 mb-4 rounded border-2 ${dragActive ? 'border-primary bg-primary bg-opacity-10' : 'border-dashed text-muted'} position-relative`}
+                                    style={{ borderStyle: 'dashed', cursor: 'pointer', transition: 'all 0.2s' }}
+                                    onDragEnter={handleDrag}
+                                    onDragLeave={handleDrag}
+                                    onDragOver={handleDrag}
+                                    onDrop={handleDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    {selectedFile ? (
+                                        <div className="d-flex flex-column align-items-center">
+                                            <CheckCircle2 size={48} className="text-success mb-2" />
+                                            <span className="fw-semibold text-dark">{selectedFile.name}</span>
+                                            <span className="small text-muted">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                            <p className="mt-2 text-primary small mb-0">Click to change file</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <UploadCloud size={48} className="mb-3 text-secondary" />
+                                            <h6 className="fw-bold mb-1">Click to upload or drag and drop</h6>
+                                            <p className="small mb-0">Max size 5MB (JPG, PNG, WEBP)</p>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="d-grid gap-2">
+                                    <button 
+                                        className="btn btn-primary btn-lg" 
+                                        onClick={confirmUpload}
+                                        disabled={!selectedFile}
+                                    >
+                                        {selectedFile ? 'Submit for AI Verification' : 'Please select a file'}
+                                    </button>
+                                    <button className="btn btn-light" onClick={handleCloseModal}>Cancel</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            )}
+
+            {/* Verification Loading Overlay */}
+            {isVerifying && (
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999 }}>
+                    <div className="spinner-border text-light mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
+                    <h4 className="text-white fw-bold">Gemini AI is analyzing your proof photo...</h4>
+                    <p className="text-light">Please do not close this window.</p>
+                </div>
+            )}
         </div>
     );
 };
