@@ -504,69 +504,109 @@ const resolveComplaint = async (req, res) => {
             const apiKey = process.env.GEMINI_API_KEY;
             if (apiKey && apiKey !== 'your_gemini_api_key_here') {
                 const genAI = new GoogleGenerativeAI(apiKey);
-                // We strongly prefer the pro model for vision, or gemini-flash-latest
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-                
-                let promptParts = [];
-                let promptText = `You are a strict city management AI inspector.
-The original civic issue reported by a citizen was:
-Title: ${complaint.title}
-Description: ${complaint.description}\n`;
+                const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash-latest"];
+                let aiResult = null;
 
-                if (complaint.photo) {
+                for (const modelName of modelsToTry) {
                     try {
-                        const response = await fetch(complaint.photo);
-                        if (response.ok) {
-                            const buffer = await response.arrayBuffer();
-                            const mimeType = response.headers.get('content-type') || 'image/jpeg';
-                            promptParts.push({
-                                inlineData: {
-                                    data: Buffer.from(buffer).toString("base64"),
-                                    mimeType: mimeType
+                        const model = genAI.getGenerativeModel({ 
+                            model: modelName,
+                            generationConfig: { temperature: 0.0 }
+                        });
+                
+                        let promptParts = [];
+                        let hasBefore = false;
+
+                        // Add BEFORE image first (if citizen uploaded one)
+                        if (complaint.photo) {
+                            try {
+                                const response = await fetch(complaint.photo);
+                                if (response.ok) {
+                                    const buffer = await response.arrayBuffer();
+                                    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+                                    promptParts.push({
+                                        inlineData: {
+                                            data: Buffer.from(buffer).toString("base64"),
+                                            mimeType: mimeType
+                                        }
+                                    });
+                                    hasBefore = true;
                                 }
-                            });
-                            promptText += `\nThe FIRST image above is the "BEFORE" photo provided by the citizen showing the issue.`;
+                            } catch (err) {
+                                console.error('Failed to fetch BEFORE image for AI verification', err);
+                            }
                         }
+
+                        // Build the strict prompt
+                        let promptText = `You are an EXTREMELY STRICT and SKEPTICAL city infrastructure inspector AI. Your job is to REJECT fraudulent or lazy proof photos. You must DEFAULT TO REJECTION unless the proof is overwhelming.
+
+## COMPLAINT DETAILS
+- Title: "${complaint.title}"
+- Description: "${complaint.description}"
+`;
+
+                        if (hasBefore) {
+                            promptText += `
+## IMAGES PROVIDED
+- IMAGE 1 (BEFORE): The citizen's original photo showing the problem AT THE TIME IT WAS REPORTED.
+- IMAGE 2 (AFTER): The volunteer's "proof" photo claiming the issue is now fixed.
+
+## CRITICAL CHECKS (do these IN ORDER):
+1. **SIMILARITY CHECK**: Are the BEFORE and AFTER images identical or nearly identical (same angle, same scene, same damage visible)? If YES → IMMEDIATELY REJECT. The volunteer likely just re-uploaded the same photo or took a photo without fixing anything.
+2. **PROBLEM STILL VISIBLE**: Does the AFTER photo still show the original problem (pothole, garbage, leak, broken light, etc.)? If the problem is STILL VISIBLE in any form → REJECT.
+3. **MEANINGFUL CHANGE**: Is there a CLEAR, VISIBLE DIFFERENCE between BEFORE and AFTER that proves work was done? (e.g., pothole filled with asphalt, garbage area cleaned, pipe repaired). If no meaningful change → REJECT.
+4. **RELEVANCE CHECK**: Does the AFTER photo show the SAME LOCATION as the BEFORE photo? If it looks like a completely different place → REJECT.
+`;
+                        } else {
+                            promptText += `
+## IMAGES PROVIDED
+- Only ONE image: The volunteer's "proof" photo claiming the issue is fixed. No citizen BEFORE photo is available.
+
+## CRITICAL CHECKS:
+1. **PROBLEM VISIBLE**: Does this photo show the described problem (${complaint.title}) STILL existing? Look for: unfixed potholes, garbage piles, leaking water, broken infrastructure, etc. If the problem is VISIBLE → REJECT.
+2. **PROOF OF FIX**: Does the photo show clear evidence that repair/cleanup work has been done? (fresh asphalt, cleaned area, repaired infrastructure). If no evidence of work → REJECT.
+3. **RELEVANCE**: Is the photo relevant to the complaint? A random photo of a clean road is NOT valid proof. → REJECT if irrelevant or generic.
+`;
+                        }
+
+                        promptText += `
+## RULES
+- When in doubt, REJECT. It is better to make a volunteer re-submit than to approve a fraudulent resolution.
+- A photo showing the SAME problem as described = automatic REJECT.
+- Two nearly identical images = automatic REJECT (the volunteer did nothing).
+
+Reply ONLY with a valid JSON object in this exact format:
+{"is_resolved": false, "reason": "The pothole is still clearly visible in the proof photo."}
+
+Set "is_resolved" to true ONLY if the AFTER photo provides UNDENIABLE proof the issue is fixed.`;
+
+                        promptParts.push({ text: promptText });
+
+                        // Add AFTER image (volunteer's proof)
+                        promptParts.push({
+                            inlineData: {
+                                data: req.file.buffer.toString("base64"),
+                                mimeType: req.file.mimetype
+                            }
+                        });
+
+                        const result = await model.generateContent(promptParts);
+                        const text = result.response.text().trim();
+                        console.log(`Gemini (${modelName}) raw response:`, text);
+                        
+                        const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                        aiResult = JSON.parse(cleanJson);
+                        break; // Successfully got a parsed result
                     } catch (err) {
-                        console.error('Failed to fetch BEFORE image for AI verification', err);
+                        console.error(`Gemini resolve verification failed for ${modelName}:`, err.message);
+                        // Try next model
                     }
                 }
-
-                promptText += `\n\nThe LAST image below (or the only image) is the "AFTER" photo provided by the volunteer as proof that the issue is now resolved/cleaned up.
-You MUST be an extremely STRICT inspector. Look closely at ALL photos.
-If the AFTER photo shows the problem STILL EXISTS (e.g., an unfixed pothole, garbage still on the road, water still leaking), you MUST reject it!
-Only approve if the AFTER photo clearly demonstrates the issue is definitively fixed.
-
-You must reply with a valid JSON object strictly matching this format:
-{
-  "is_resolved": boolean,
-  "reason": "A short, 1-2 sentence explanation of why it is approved or rejected."
-}`;
-
-                promptParts.push({ text: promptText });
-
-                promptParts.push({
-                    inlineData: {
-                        data: req.file.buffer.toString("base64"),
-                        mimeType: req.file.mimetype
-                    }
-                });
-
-                const result = await model.generateContent(promptParts);
-                const text = result.response.text().trim();
                 
-                let parsed = null;
-                try {
-                    const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-                    parsed = JSON.parse(cleanJson);
-                } catch (e) {
-                    console.error('Failed to parse Gemini JSON:', text);
-                }
-                
-                if (parsed && parsed.is_resolved === true) {
+                if (aiResult && aiResult.is_resolved === true) {
                     isResolved = true;
                 } else {
-                    aiRejectionReason = parsed?.reason || aiRejectionReason;
+                    aiRejectionReason = aiResult?.reason || aiRejectionReason;
                     console.log('Gemini rejected resolution. Reason:', aiRejectionReason);
                 }
             } else {
