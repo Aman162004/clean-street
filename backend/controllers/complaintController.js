@@ -504,83 +504,94 @@ const resolveComplaint = async (req, res) => {
             const apiKey = process.env.GEMINI_API_KEY;
             if (apiKey && apiKey !== 'your_gemini_api_key_here') {
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash-latest"];
+                // Use exact same model list that works for department classification
+                const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
                 let aiResult = null;
 
                 for (const modelName of modelsToTry) {
                     try {
                         const model = genAI.getGenerativeModel({ 
                             model: modelName,
-                            generationConfig: { temperature: 0.0 }
+                            generationConfig: { temperature: 0.1 }
                         });
                 
                         let promptParts = [];
                         let hasBefore = false;
+                        let beforeImageData = null;
 
-                        // Add BEFORE image first (if citizen uploaded one)
+                        // Fetch BEFORE image data first (if citizen uploaded one)
                         if (complaint.photo) {
                             try {
                                 const response = await fetch(complaint.photo);
                                 if (response.ok) {
                                     const buffer = await response.arrayBuffer();
                                     const mimeType = response.headers.get('content-type') || 'image/jpeg';
-                                    promptParts.push({
+                                    beforeImageData = {
                                         inlineData: {
                                             data: Buffer.from(buffer).toString("base64"),
                                             mimeType: mimeType
                                         }
-                                    });
+                                    };
                                     hasBefore = true;
+                                    console.log('Successfully fetched BEFORE image for comparison');
                                 }
                             } catch (err) {
-                                console.error('Failed to fetch BEFORE image for AI verification', err);
+                                console.error('Failed to fetch BEFORE image for AI verification', err.message);
                             }
                         }
 
-                        // Build the strict prompt
-                        let promptText = `You are an EXTREMELY STRICT and SKEPTICAL city infrastructure inspector AI. Your job is to REJECT fraudulent or lazy proof photos. You must DEFAULT TO REJECTION unless the proof is overwhelming.
+                        // BUILD PROMPT: Text instruction FIRST, then images
+                        let promptText = `You are a city management AI that verifies civic issue resolutions by comparing photos.
 
-## COMPLAINT DETAILS
-- Title: "${complaint.title}"
-- Description: "${complaint.description}"
+REPORTED ISSUE: "${complaint.title}"
+DESCRIPTION: "${complaint.description}"
 `;
 
                         if (hasBefore) {
                             promptText += `
-## IMAGES PROVIDED
-- IMAGE 1 (BEFORE): The citizen's original photo showing the problem AT THE TIME IT WAS REPORTED.
-- IMAGE 2 (AFTER): The volunteer's "proof" photo claiming the issue is now fixed.
+I will show you two photos in order:
+1. BEFORE photo — showing the original problem reported by the citizen
+2. AFTER photo — the volunteer's proof that they fixed it
 
-## CRITICAL CHECKS (do these IN ORDER):
-1. **SIMILARITY CHECK**: Are the BEFORE and AFTER images identical or nearly identical (same angle, same scene, same damage visible)? If YES → IMMEDIATELY REJECT. The volunteer likely just re-uploaded the same photo or took a photo without fixing anything.
-2. **PROBLEM STILL VISIBLE**: Does the AFTER photo still show the original problem (pothole, garbage, leak, broken light, etc.)? If the problem is STILL VISIBLE in any form → REJECT.
-3. **MEANINGFUL CHANGE**: Is there a CLEAR, VISIBLE DIFFERENCE between BEFORE and AFTER that proves work was done? (e.g., pothole filled with asphalt, garbage area cleaned, pipe repaired). If no meaningful change → REJECT.
-4. **RELEVANCE CHECK**: Does the AFTER photo show the SAME LOCATION as the BEFORE photo? If it looks like a completely different place → REJECT.
+Your task: Determine if the problem described above has been FIXED in the AFTER photo compared to the BEFORE photo.
+
+APPROVE (is_resolved: true) if:
+- The AFTER photo shows the defect has been repaired (e.g., a pothole filled with asphalt, garbage cleaned up, a broken light replaced)
+- There is a visible physical change showing repair work was done
+
+REJECT (is_resolved: false) if:
+- Both photos look identical — no repair work was done
+- The problem (pothole, garbage, damage) is still clearly present in the AFTER photo
+- The AFTER photo is blurry, irrelevant, or unrelated
 `;
                         } else {
                             promptText += `
-## IMAGES PROVIDED
-- Only ONE image: The volunteer's "proof" photo claiming the issue is fixed. No citizen BEFORE photo is available.
+I will show you ONE photo — the volunteer's proof that they fixed the issue. No original "before" photo is available.
 
-## CRITICAL CHECKS:
-1. **PROBLEM VISIBLE**: Does this photo show the described problem (${complaint.title}) STILL existing? Look for: unfixed potholes, garbage piles, leaking water, broken infrastructure, etc. If the problem is VISIBLE → REJECT.
-2. **PROOF OF FIX**: Does the photo show clear evidence that repair/cleanup work has been done? (fresh asphalt, cleaned area, repaired infrastructure). If no evidence of work → REJECT.
-3. **RELEVANCE**: Is the photo relevant to the complaint? A random photo of a clean road is NOT valid proof. → REJECT if irrelevant or generic.
+APPROVE (is_resolved: true) if:
+- The photo shows evidence of completed repair work (fresh asphalt patch, cleaned area, fixed infrastructure)
+- The described problem does NOT appear to still exist
+
+REJECT (is_resolved: false) if:
+- The described problem is clearly still visible in the photo
+- The photo is blurry, irrelevant, or shows no evidence of work done
 `;
                         }
 
                         promptText += `
-## RULES
-- When in doubt, REJECT. It is better to make a volunteer re-submit than to approve a fraudulent resolution.
-- A photo showing the SAME problem as described = automatic REJECT.
-- Two nearly identical images = automatic REJECT (the volunteer did nothing).
+Reply with ONLY this JSON format, nothing else:
+{"is_resolved": true, "reason": "Brief explanation"}
+or
+{"is_resolved": false, "reason": "Brief explanation"}`;
 
-Reply ONLY with a valid JSON object in this exact format:
-{"is_resolved": false, "reason": "The pothole is still clearly visible in the proof photo."}
-
-Set "is_resolved" to true ONLY if the AFTER photo provides UNDENIABLE proof the issue is fixed.`;
-
+                        // Order: TEXT → BEFORE image → AFTER image
                         promptParts.push({ text: promptText });
+
+                        if (hasBefore && beforeImageData) {
+                            promptParts.push({ text: "BEFORE photo (the original problem):" });
+                            promptParts.push(beforeImageData);
+                            promptParts.push({ text: "AFTER photo (volunteer's proof of fix):" });
+                        }
 
                         // Add AFTER image (volunteer's proof)
                         promptParts.push({
@@ -605,9 +616,10 @@ Set "is_resolved" to true ONLY if the AFTER photo provides UNDENIABLE proof the 
                 
                 if (aiResult && aiResult.is_resolved === true) {
                     isResolved = true;
+                    console.log('Gemini APPROVED resolution. Reason:', aiResult.reason);
                 } else {
                     aiRejectionReason = aiResult?.reason || aiRejectionReason;
-                    console.log('Gemini rejected resolution. Reason:', aiRejectionReason);
+                    console.log('Gemini REJECTED resolution. Reason:', aiRejectionReason);
                 }
             } else {
                 // If API key is missing, skip AI check and allow
